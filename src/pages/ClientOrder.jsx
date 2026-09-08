@@ -16,6 +16,7 @@ export default function ClientOrder() {
   const [nombre, setNombre] = useState('')
   const [semanaInicio, setSemanaInicio] = useState(null)
   const [guardando, setGuardando] = useState({})
+  const [errorGuardado, setErrorGuardado] = useState('')
 
   useEffect(() => {
     let activo = true
@@ -59,6 +60,8 @@ export default function ClientOrder() {
   }, [token])
 
   async function elegir(diaMenuId, tipo) {
+    const eleccionAnterior = dias.find((d) => d.diaMenuId === diaMenuId)?.eleccion ?? null
+    setErrorGuardado('')
     setGuardando((prev) => ({ ...prev, [diaMenuId]: true }))
     setDias((prev) =>
       prev.map((d) => (d.diaMenuId === diaMenuId ? { ...d, eleccion: tipo } : d))
@@ -72,6 +75,10 @@ export default function ClientOrder() {
 
     if (error) {
       console.error(error)
+      setDias((prev) =>
+        prev.map((d) => (d.diaMenuId === diaMenuId ? { ...d, eleccion: eleccionAnterior } : d))
+      )
+      setErrorGuardado('No pudimos guardar tu elección. Revisá tu conexión e intentá de nuevo.')
     }
     setGuardando((prev) => ({ ...prev, [diaMenuId]: false }))
   }
@@ -110,6 +117,12 @@ export default function ClientOrder() {
           Semana del {formatFecha(semanaInicio)}
         </p>
         <h1 style={{ fontSize: 26, marginBottom: 22 }}>Hola, {nombre}</h1>
+
+        {errorGuardado && (
+          <p role="alert" style={{ color: 'var(--color-clay-dark)', margin: '0 0 18px' }}>
+            {errorGuardado}
+          </p>
+        )}
 
         {dias.map((dia) => (
           <div

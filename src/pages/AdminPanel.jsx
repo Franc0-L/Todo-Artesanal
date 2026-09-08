@@ -19,6 +19,7 @@ export default function AdminPanel() {
   const [clientes, setClientes] = useState([])
   const [pedidos, setPedidos] = useState({}) // { [clienteId]: { [diaMenuId]: { tipo_menu, monto } } }
   const [copiado, setCopiado] = useState(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -31,11 +32,17 @@ export default function AdminPanel() {
   }, [navigate])
 
   const cargarDatos = useCallback(async () => {
-    const { data: semanaActiva } = await supabase
+    setError('')
+    const { data: semanaActiva, error: errorSemana } = await supabase
       .from('semanas')
       .select('*')
       .eq('activa', true)
       .maybeSingle()
+
+    if (errorSemana) {
+      setError('No pudimos cargar los pedidos. Probá de nuevo en unos minutos.')
+      return
+    }
 
     if (!semanaActiva) {
       setSemana(null)
@@ -43,7 +50,7 @@ export default function AdminPanel() {
     }
     setSemana(semanaActiva)
 
-    const [{ data: diasData }, { data: clientesData }, { data: pedidosData }] = await Promise.all([
+    const [diasResult, clientesResult, pedidosResult] = await Promise.all([
       supabase
         .from('dias_menu')
         .select('*')
@@ -53,6 +60,14 @@ export default function AdminPanel() {
       supabase.from('vista_pedidos_semana').select('*').eq('semana_id', semanaActiva.id),
     ])
 
+    if (diasResult.error || clientesResult.error || pedidosResult.error) {
+      setError('No pudimos cargar los pedidos. Probá de nuevo en unos minutos.')
+      return
+    }
+
+    const diasData = diasResult.data
+    const clientesData = clientesResult.data
+    const pedidosData = pedidosResult.data
     setDias(diasData ?? [])
     setClientes(clientesData ?? [])
 
@@ -101,15 +116,20 @@ export default function AdminPanel() {
       return copia
     })
 
+    let result
     if (siguiente === null) {
-      await supabase.from('pedidos').delete().match({ cliente_id: cliente.id, dia_menu_id: diaMenuId })
+      result = await supabase.from('pedidos').delete().match({ cliente_id: cliente.id, dia_menu_id: diaMenuId })
     } else {
-      await supabase
+      result = await supabase
         .from('pedidos')
         .upsert(
           { cliente_id: cliente.id, dia_menu_id: diaMenuId, tipo_menu: siguiente },
           { onConflict: 'cliente_id,dia_menu_id' }
         )
+    }
+    if (result.error) {
+      setError('No pudimos guardar el cambio. Volvé a intentarlo.')
+      cargarDatos()
     }
   }
 
@@ -149,6 +169,7 @@ export default function AdminPanel() {
 
   return (
     <Contenedor onCerrarSesion={cerrarSesion}>
+      {error && <p role="alert" style={{ color: 'var(--color-clay-dark)' }}>{error}</p>}
       <p style={{ color: 'var(--color-ink-muted)', fontSize: 14, margin: '0 0 4px' }}>
         Semana del {formatFecha(semana.fecha_inicio)}
       </p>

@@ -12,7 +12,15 @@ ya calculados.
    la pantalla del cliente.
 3. En **Authentication > Users**, creá manualmente un usuario (el email/contraseña que
    va a usar tu mamá para entrar al panel). No hace falta que se registre nadie más.
-4. En **Project Settings > API**, copiá la **Project URL** y la **anon public key**.
+4. En **SQL Editor**, después de crear ese usuario, ejecutá lo siguiente y reemplazá
+   `<UUID_DEL_USUARIO>` por su UUID (visible en Authentication > Users):
+
+   ```sql
+   insert into private.admin_users (user_id) values ('<UUID_DEL_USUARIO>');
+   ```
+
+   Esto es necesario para que solo esa cuenta pueda ver y modificar datos del panel.
+5. En **Project Settings > API**, copiá la **Project URL** y la **anon public key**.
 
 ## 2. Configurar el proyecto
 
