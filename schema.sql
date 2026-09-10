@@ -1,6 +1,3 @@
--- Todo Artesanal — esquema de base de datos
--- Ejecutar completo en el SQL Editor de tu proyecto de Supabase (Database > SQL Editor > New query)
-
 create extension if not exists pgcrypto;
 
 -- ============================================================
