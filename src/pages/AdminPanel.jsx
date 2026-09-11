@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { DIA_LABEL, formatFecha, formatMonto } from '../lib/format'
 
@@ -150,11 +150,12 @@ export default function AdminPanel() {
   if (!semana) {
     return (
       <Contenedor onCerrarSesion={cerrarSesion}>
-        <p style={{ color: 'var(--color-ink-muted)' }}>
-          No hay ninguna semana activa todavía. Cargá una fila en la tabla{' '}
-          <code>semanas</code> (con <code>activa = true</code>) y sus{' '}
-          <code>dias_menu</code> desde el editor de tablas de Supabase para empezar.
+        <p style={{ color: 'var(--color-ink-muted)', marginBottom: 16 }}>
+          No hay ninguna semana activa todavía.
         </p>
+        <Link to="/admin/nueva-semana" style={primaryLinkStyle}>
+          Cargar la primera semana
+        </Link>
       </Contenedor>
     )
   }
@@ -170,10 +171,18 @@ export default function AdminPanel() {
   return (
     <Contenedor onCerrarSesion={cerrarSesion}>
       {error && <p role="alert" style={{ color: 'var(--color-clay-dark)' }}>{error}</p>}
-      <p style={{ color: 'var(--color-ink-muted)', fontSize: 14, margin: '0 0 4px' }}>
-        Semana del {formatFecha(semana.fecha_inicio)}
-      </p>
-      <h1 style={{ fontSize: 24, marginBottom: 18 }}>Pedidos de la semana</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <p style={{ color: 'var(--color-ink-muted)', fontSize: 14, margin: '0 0 4px' }}>
+            Semana del {formatFecha(semana.fecha_inicio)}
+          </p>
+          <h1 style={{ fontSize: 24, margin: 0 }}>Pedidos de la semana</h1>
+        </div>
+        <Link to="/admin/nueva-semana" style={primaryLinkStyle}>
+          Cargar próxima semana
+        </Link>
+      </div>
+      <div style={{ marginBottom: 18 }} />
 
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640 }}>
@@ -320,6 +329,18 @@ const tdStyle = {
   padding: '6px 10px',
   borderBottom: '1px solid var(--color-border)',
   fontSize: 15,
+}
+
+const primaryLinkStyle = {
+  display: 'inline-block',
+  padding: '9px 16px',
+  fontSize: 14,
+  fontWeight: 600,
+  borderRadius: 'var(--radius-md)',
+  background: 'var(--color-clay)',
+  color: '#fff',
+  textDecoration: 'none',
+  whiteSpace: 'nowrap',
 }
 
 const linkBtnStyle = {
