@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { DIA_LABEL, formatFecha } from '../lib/format'
 
-const DIAS_ORDEN = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
-const DIAS_POR_DEFECTO = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
+const DIAS_SEMANA = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
 
 function proximoLunes() {
   const hoy = new Date()
@@ -20,21 +19,19 @@ function sumarDias(fechaISO, n) {
 }
 
 function diaVacio() {
-  return { plato_general: '', plato_opcional: '', notas_temperatura: '' }
+  return { plato_general_id: '', plato_opcional_id: '', notas_temperatura: '' }
 }
 
 export default function NuevaSemana() {
   const navigate = useNavigate()
   const [cargandoSesion, setCargandoSesion] = useState(true)
   const [semanaActivaActual, setSemanaActivaActual] = useState(null)
+  const [platos, setPlatos] = useState([])
 
   const [fechaInicio, setFechaInicio] = useState(proximoLunes())
   const [precioGeneral, setPrecioGeneral] = useState('')
   const [precioOpcional, setPrecioOpcional] = useState('')
-  const [diasHabilitados, setDiasHabilitados] = useState(
-    Object.fromEntries(DIAS_ORDEN.map((d) => [d, DIAS_POR_DEFECTO.includes(d)]))
-  )
-  const [platos, setPlatos] = useState(Object.fromEntries(DIAS_ORDEN.map((d) => [d, diaVacio()])))
+  const [dias, setDias] = useState(Object.fromEntries(DIAS_SEMANA.map((d) => [d, diaVacio()])))
 
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
@@ -57,14 +54,17 @@ export default function NuevaSemana() {
       .eq('activa', true)
       .maybeSingle()
       .then(({ data }) => setSemanaActivaActual(data ?? null))
+
+    supabase
+      .from('platos')
+      .select('*')
+      .eq('activo', true)
+      .order('nombre')
+      .then(({ data }) => setPlatos(data ?? []))
   }, [cargandoSesion])
 
-  function actualizarPlato(dia, campo, valor) {
-    setPlatos((prev) => ({ ...prev, [dia]: { ...prev[dia], [campo]: valor } }))
-  }
-
-  function toggleDia(dia) {
-    setDiasHabilitados((prev) => ({ ...prev, [dia]: !prev[dia] }))
+  function actualizarDia(dia, campo, valor) {
+    setDias((prev) => ({ ...prev, [dia]: { ...prev[dia], [campo]: valor } }))
   }
 
   async function guardar(e) {
@@ -76,26 +76,18 @@ export default function NuevaSemana() {
       return
     }
 
-    const diasElegidos = DIAS_ORDEN.filter((d) => diasHabilitados[d])
-    if (diasElegidos.length === 0) {
-      setError('Elegí al menos un día para esta semana.')
-      return
-    }
-
-    const faltante = diasElegidos.find(
-      (d) => !platos[d].plato_general.trim() || !platos[d].plato_opcional.trim()
-    )
+    const faltante = DIAS_SEMANA.find((d) => !dias[d].plato_general_id || !dias[d].plato_opcional_id)
     if (faltante) {
-      setError(`Falta cargar el plato general u opcional de ${DIA_LABEL[faltante]}.`)
+      setError(`Falta elegir el plato general u opcional de ${DIA_LABEL[faltante]}.`)
       return
     }
 
-    const p_dias = diasElegidos.map((d, i) => ({
+    const p_dias = DIAS_SEMANA.map((d) => ({
       dia_semana: d,
-      fecha: sumarDias(fechaInicio, DIAS_ORDEN.indexOf(d)),
-      plato_general: platos[d].plato_general.trim(),
-      plato_opcional: platos[d].plato_opcional.trim(),
-      notas_temperatura: platos[d].notas_temperatura.trim(),
+      fecha: sumarDias(fechaInicio, DIAS_SEMANA.indexOf(d)),
+      plato_general_id: dias[d].plato_general_id,
+      plato_opcional_id: dias[d].plato_opcional_id,
+      notas_temperatura: dias[d].notas_temperatura.trim(),
     }))
 
     setGuardando(true)
@@ -118,25 +110,29 @@ export default function NuevaSemana() {
 
   if (cargandoSesion) return null
 
+  if (platos.length === 0) {
+    return (
+      <div style={{ minHeight: '100%', padding: '28px 20px' }}>
+        <div style={cardStyle}>
+          <Link to="/admin" style={backLinkStyle}>
+            ← Volver al panel
+          </Link>
+          <h1 style={{ fontSize: 24, marginBottom: 12 }}>Cargar semana nueva</h1>
+          <p style={{ color: 'var(--color-ink-muted)' }}>
+            Todavía no hay platos en el catálogo. Cargá algunos primero en{' '}
+            <Link to="/admin/platos">Catálogo de platos</Link> y volvé acá.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ minHeight: '100%', padding: '28px 20px' }}>
-      <div
-        style={{
-          maxWidth: 640,
-          margin: '0 auto',
-          background: 'var(--color-surface)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-card)',
-          border: '1px solid var(--color-border)',
-          padding: '28px 26px',
-        }}
-      >
-        <button
-          onClick={() => navigate('/admin')}
-          style={{ background: 'none', border: 'none', color: 'var(--color-ink-muted)', fontSize: 13, padding: 0, marginBottom: 14 }}
-        >
+      <div style={cardStyle}>
+        <Link to="/admin" style={backLinkStyle}>
           ← Volver al panel
-        </button>
+        </Link>
 
         <h1 style={{ fontSize: 24, marginBottom: 8 }}>Cargar semana nueva</h1>
 
@@ -188,55 +184,47 @@ export default function NuevaSemana() {
             </label>
           </div>
 
-          {DIAS_ORDEN.map((dia) => (
-            <div
-              key={dia}
-              style={{
-                marginBottom: 16,
-                paddingBottom: 16,
-                borderBottom: '1px solid var(--color-border)',
-                opacity: diasHabilitados[dia] ? 1 : 0.5,
-              }}
-            >
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontWeight: 600 }}>
+          {DIAS_SEMANA.map((dia) => (
+            <div key={dia} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--color-border)' }}>
+              <p style={{ fontWeight: 600, margin: '0 0 10px' }}>{DIA_LABEL[dia]}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <select
+                  id={`${dia}-general`}
+                  name={`${dia}-general`}
+                  value={dias[dia].plato_general_id}
+                  onChange={(e) => actualizarDia(dia, 'plato_general_id', e.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="">Elegí el plato general…</option>
+                  {platos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  id={`${dia}-opcional`}
+                  name={`${dia}-opcional`}
+                  value={dias[dia].plato_opcional_id}
+                  onChange={(e) => actualizarDia(dia, 'plato_opcional_id', e.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="">Elegí el plato opcional…</option>
+                  {platos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
                 <input
-                  type="checkbox"
-                  id={`incluir-${dia}`}
-                  name={`incluir-${dia}`}
-                  checked={diasHabilitados[dia]}
-                  onChange={() => toggleDia(dia)}
+                  id={`${dia}-notas`}
+                  name={`${dia}-notas`}
+                  placeholder="Notas de temperatura (opcional)"
+                  value={dias[dia].notas_temperatura}
+                  onChange={(e) => actualizarDia(dia, 'notas_temperatura', e.target.value)}
+                  style={inputStyle}
                 />
-                {DIA_LABEL[dia]}
-              </label>
-
-              {diasHabilitados[dia] && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <input
-                    id={`${dia}-general`}
-                    name={`${dia}-general`}
-                    placeholder="Plato general"
-                    value={platos[dia].plato_general}
-                    onChange={(e) => actualizarPlato(dia, 'plato_general', e.target.value)}
-                    style={inputStyle}
-                  />
-                  <input
-                    id={`${dia}-opcional`}
-                    name={`${dia}-opcional`}
-                    placeholder="Plato opcional"
-                    value={platos[dia].plato_opcional}
-                    onChange={(e) => actualizarPlato(dia, 'plato_opcional', e.target.value)}
-                    style={inputStyle}
-                  />
-                  <input
-                    id={`${dia}-notas`}
-                    name={`${dia}-notas`}
-                    placeholder="Notas de temperatura (opcional)"
-                    value={platos[dia].notas_temperatura}
-                    onChange={(e) => actualizarPlato(dia, 'notas_temperatura', e.target.value)}
-                    style={inputStyle}
-                  />
-                </div>
-              )}
+              </div>
             </div>
           ))}
 
@@ -266,6 +254,24 @@ export default function NuevaSemana() {
       </div>
     </div>
   )
+}
+
+const cardStyle = {
+  maxWidth: 640,
+  margin: '0 auto',
+  background: 'var(--color-surface)',
+  borderRadius: 'var(--radius-lg)',
+  boxShadow: 'var(--shadow-card)',
+  border: '1px solid var(--color-border)',
+  padding: '28px 26px',
+}
+
+const backLinkStyle = {
+  display: 'inline-block',
+  color: 'var(--color-ink-muted)',
+  fontSize: 13,
+  textDecoration: 'none',
+  marginBottom: 14,
 }
 
 const labelStyle = { display: 'block', fontSize: 13, color: 'var(--color-ink-muted)', marginBottom: 6 }

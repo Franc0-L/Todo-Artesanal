@@ -178,9 +178,14 @@ export default function AdminPanel() {
           </p>
           <h1 style={{ fontSize: 24, margin: 0 }}>Pedidos de la semana</h1>
         </div>
-        <Link to="/admin/nueva-semana" style={primaryLinkStyle}>
-          Cargar próxima semana
-        </Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link to="/admin/platos" style={secondaryLinkStyle}>
+            Catálogo de platos
+          </Link>
+          <Link to="/admin/nueva-semana" style={primaryLinkStyle}>
+            Cargar próxima semana
+          </Link>
+        </div>
       </div>
       <div style={{ marginBottom: 18 }} />
 
@@ -339,6 +344,18 @@ const primaryLinkStyle = {
   borderRadius: 'var(--radius-md)',
   background: 'var(--color-clay)',
   color: '#fff',
+  textDecoration: 'none',
+  whiteSpace: 'nowrap',
+}
+
+const secondaryLinkStyle = {
+  display: 'inline-block',
+  padding: '9px 16px',
+  fontSize: 14,
+  fontWeight: 600,
+  borderRadius: 'var(--radius-md)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-clay-dark)',
   textDecoration: 'none',
   whiteSpace: 'nowrap',
 }
