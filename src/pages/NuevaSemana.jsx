@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { DIA_LABEL, formatFecha } from '../lib/format'
+import AdminLayout, { cardStyle } from './AdminLayout.jsx'
 
 const DIAS_SEMANA = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
 
@@ -19,14 +20,14 @@ function sumarDias(fechaISO, n) {
 }
 
 function diaVacio() {
-  return { plato_general_id: '', plato_opcional_id: '', notas_temperatura: '' }
+  return { plato_general_id: '', plato_opcional_id: '' }
 }
 
 export default function NuevaSemana() {
   const navigate = useNavigate()
-  const [cargandoSesion, setCargandoSesion] = useState(true)
   const [semanaActivaActual, setSemanaActivaActual] = useState(null)
   const [platos, setPlatos] = useState([])
+  const [cargandoPlatos, setCargandoPlatos] = useState(true)
 
   const [fechaInicio, setFechaInicio] = useState(proximoLunes())
   const [precioGeneral, setPrecioGeneral] = useState('')
@@ -37,17 +38,6 @@ export default function NuevaSemana() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        navigate('/admin/login')
-        return
-      }
-      setCargandoSesion(false)
-    })
-  }, [navigate])
-
-  useEffect(() => {
-    if (cargandoSesion) return
     supabase
       .from('semanas')
       .select('fecha_inicio')
@@ -60,8 +50,11 @@ export default function NuevaSemana() {
       .select('*')
       .eq('activo', true)
       .order('nombre')
-      .then(({ data }) => setPlatos(data ?? []))
-  }, [cargandoSesion])
+      .then(({ data }) => {
+        setPlatos(data ?? [])
+        setCargandoPlatos(false)
+      })
+  }, [])
 
   function actualizarDia(dia, campo, valor) {
     setDias((prev) => ({ ...prev, [dia]: { ...prev[dia], [campo]: valor } }))
@@ -87,7 +80,6 @@ export default function NuevaSemana() {
       fecha: sumarDias(fechaInicio, DIAS_SEMANA.indexOf(d)),
       plato_general_id: dias[d].plato_general_id,
       plato_opcional_id: dias[d].plato_opcional_id,
-      notas_temperatura: dias[d].notas_temperatura.trim(),
     }))
 
     setGuardando(true)
@@ -108,32 +100,25 @@ export default function NuevaSemana() {
     navigate('/admin')
   }
 
-  if (cargandoSesion) return null
+  if (cargandoPlatos) return <AdminLayout />
 
   if (platos.length === 0) {
     return (
-      <div style={{ minHeight: '100%', padding: '28px 20px' }}>
+      <AdminLayout>
         <div style={cardStyle}>
-          <Link to="/admin" style={backLinkStyle}>
-            ← Volver al panel
-          </Link>
           <h1 style={{ fontSize: 24, marginBottom: 12 }}>Cargar semana nueva</h1>
           <p style={{ color: 'var(--color-ink-muted)' }}>
             Todavía no hay platos en el catálogo. Cargá algunos primero en{' '}
             <Link to="/admin/platos">Catálogo de platos</Link> y volvé acá.
           </p>
         </div>
-      </div>
+      </AdminLayout>
     )
   }
 
   return (
-    <div style={{ minHeight: '100%', padding: '28px 20px' }}>
+    <AdminLayout>
       <div style={cardStyle}>
-        <Link to="/admin" style={backLinkStyle}>
-          ← Volver al panel
-        </Link>
-
         <h1 style={{ fontSize: 24, marginBottom: 8 }}>Cargar semana nueva</h1>
 
         {semanaActivaActual && (
@@ -147,40 +132,15 @@ export default function NuevaSemana() {
           <div style={{ display: 'flex', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
             <label style={{ flex: '1 1 160px' }}>
               <span style={labelStyle}>Fecha de inicio (lunes)</span>
-              <input
-                type="date"
-                id="fecha-inicio"
-                name="fecha-inicio"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-                style={inputStyle}
-              />
+              <input type="date" id="fecha-inicio" name="fecha-inicio" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} style={inputStyle} />
             </label>
             <label style={{ flex: '1 1 140px' }}>
               <span style={labelStyle}>Precio general</span>
-              <input
-                type="number"
-                id="precio-general"
-                name="precio-general"
-                min="0"
-                inputMode="decimal"
-                value={precioGeneral}
-                onChange={(e) => setPrecioGeneral(e.target.value)}
-                style={inputStyle}
-              />
+              <input type="number" id="precio-general" name="precio-general" min="0" inputMode="decimal" value={precioGeneral} onChange={(e) => setPrecioGeneral(e.target.value)} style={inputStyle} />
             </label>
             <label style={{ flex: '1 1 140px' }}>
               <span style={labelStyle}>Precio opcional</span>
-              <input
-                type="number"
-                id="precio-opcional"
-                name="precio-opcional"
-                min="0"
-                inputMode="decimal"
-                value={precioOpcional}
-                onChange={(e) => setPrecioOpcional(e.target.value)}
-                style={inputStyle}
-              />
+              <input type="number" id="precio-opcional" name="precio-opcional" min="0" inputMode="decimal" value={precioOpcional} onChange={(e) => setPrecioOpcional(e.target.value)} style={inputStyle} />
             </label>
           </div>
 
@@ -188,13 +148,7 @@ export default function NuevaSemana() {
             <div key={dia} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--color-border)' }}>
               <p style={{ fontWeight: 600, margin: '0 0 10px' }}>{DIA_LABEL[dia]}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <select
-                  id={`${dia}-general`}
-                  name={`${dia}-general`}
-                  value={dias[dia].plato_general_id}
-                  onChange={(e) => actualizarDia(dia, 'plato_general_id', e.target.value)}
-                  style={inputStyle}
-                >
+                <select id={`${dia}-general`} name={`${dia}-general`} value={dias[dia].plato_general_id} onChange={(e) => actualizarDia(dia, 'plato_general_id', e.target.value)} style={inputStyle}>
                   <option value="">Elegí el plato general…</option>
                   {platos.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -202,13 +156,7 @@ export default function NuevaSemana() {
                     </option>
                   ))}
                 </select>
-                <select
-                  id={`${dia}-opcional`}
-                  name={`${dia}-opcional`}
-                  value={dias[dia].plato_opcional_id}
-                  onChange={(e) => actualizarDia(dia, 'plato_opcional_id', e.target.value)}
-                  style={inputStyle}
-                >
+                <select id={`${dia}-opcional`} name={`${dia}-opcional`} value={dias[dia].plato_opcional_id} onChange={(e) => actualizarDia(dia, 'plato_opcional_id', e.target.value)} style={inputStyle}>
                   <option value="">Elegí el plato opcional…</option>
                   {platos.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -216,14 +164,6 @@ export default function NuevaSemana() {
                     </option>
                   ))}
                 </select>
-                <input
-                  id={`${dia}-notas`}
-                  name={`${dia}-notas`}
-                  placeholder="Notas de temperatura (opcional)"
-                  value={dias[dia].notas_temperatura}
-                  onChange={(e) => actualizarDia(dia, 'notas_temperatura', e.target.value)}
-                  style={inputStyle}
-                />
               </div>
             </div>
           ))}
@@ -237,41 +177,14 @@ export default function NuevaSemana() {
           <button
             type="submit"
             disabled={guardando}
-            style={{
-              width: '100%',
-              padding: '14px 0',
-              fontSize: 16,
-              fontWeight: 600,
-              borderRadius: 'var(--radius-md)',
-              border: 'none',
-              background: 'var(--color-clay)',
-              color: '#fff',
-            }}
+            style={{ width: '100%', padding: '14px 0', fontSize: 16, fontWeight: 600, borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--color-clay)', color: '#fff' }}
           >
             {guardando ? 'Creando semana…' : 'Crear y activar esta semana'}
           </button>
         </form>
       </div>
-    </div>
+    </AdminLayout>
   )
-}
-
-const cardStyle = {
-  maxWidth: 640,
-  margin: '0 auto',
-  background: 'var(--color-surface)',
-  borderRadius: 'var(--radius-lg)',
-  boxShadow: 'var(--shadow-card)',
-  border: '1px solid var(--color-border)',
-  padding: '28px 26px',
-}
-
-const backLinkStyle = {
-  display: 'inline-block',
-  color: 'var(--color-ink-muted)',
-  fontSize: 13,
-  textDecoration: 'none',
-  marginBottom: 14,
 }
 
 const labelStyle = { display: 'block', fontSize: 13, color: 'var(--color-ink-muted)', marginBottom: 6 }

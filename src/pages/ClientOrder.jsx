@@ -9,6 +9,11 @@ const OPCIONES = [
   { valor: 'no_come', etiqueta: 'No como este día' },
 ]
 
+const AVISO_CLIMA = {
+  calor: 'Pensado para los días de calor',
+  frio: 'Pensado para los días fríos',
+}
+
 export default function ClientOrder() {
   const { token } = useParams()
   const [estado, setEstado] = useState('cargando') // cargando | listo | no_encontrado | error
@@ -45,8 +50,9 @@ export default function ClientOrder() {
           diaSemana: fila.dia_semana,
           fecha: fila.fecha,
           platoGeneral: fila.plato_general,
+          platoGeneralClima: fila.plato_general_clima,
           platoOpcional: fila.plato_opcional,
-          notasTemperatura: fila.notas_temperatura,
+          platoOpcionalClima: fila.plato_opcional_clima,
           eleccion: fila.eleccion_actual,
         }))
       )
@@ -138,21 +144,20 @@ export default function ClientOrder() {
             </p>
             <p style={{ margin: '0 0 4px', color: 'var(--color-ink-muted)', fontSize: 15 }}>
               General: {dia.platoGeneral}
+              {AVISO_CLIMA[dia.platoGeneralClima] && (
+                <span style={{ display: 'block', color: 'var(--color-olive-dark)', fontSize: 13 }}>
+                  {AVISO_CLIMA[dia.platoGeneralClima]}
+                </span>
+              )}
             </p>
             <p style={{ margin: '0 0 12px', color: 'var(--color-ink-muted)', fontSize: 15 }}>
               Opcional: {dia.platoOpcional}
+              {AVISO_CLIMA[dia.platoOpcionalClima] && (
+                <span style={{ display: 'block', color: 'var(--color-olive-dark)', fontSize: 13 }}>
+                  {AVISO_CLIMA[dia.platoOpcionalClima]}
+                </span>
+              )}
             </p>
-            {dia.notasTemperatura && (
-              <p
-                style={{
-                  margin: '0 0 12px',
-                  color: 'var(--color-olive-dark)',
-                  fontSize: 14,
-                }}
-              >
-                {dia.notasTemperatura}
-              </p>
-            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {OPCIONES.map((op) => {

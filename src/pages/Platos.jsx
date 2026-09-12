@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import AdminLayout, { cardStyle } from './AdminLayout.jsx'
 
 const CLIMAS = [
   { valor: 'cualquiera', etiqueta: 'Cualquiera' },
@@ -19,8 +19,6 @@ function formatUltimaVez(fechaISO) {
 }
 
 export default function Platos() {
-  const navigate = useNavigate()
-  const [cargandoSesion, setCargandoSesion] = useState(true)
   const [platos, setPlatos] = useState([])
   const [error, setError] = useState('')
 
@@ -29,22 +27,8 @@ export default function Platos() {
   const [nuevoClima, setNuevoClima] = useState('cualquiera')
   const [guardandoNuevo, setGuardandoNuevo] = useState(false)
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        navigate('/admin/login')
-        return
-      }
-      setCargandoSesion(false)
-    })
-  }, [navigate])
-
   const cargarPlatos = useCallback(async () => {
-    const { data, error: fetchError } = await supabase
-      .from('vista_uso_platos')
-      .select('*')
-      .order('nombre')
-
+    const { data, error: fetchError } = await supabase.from('vista_uso_platos').select('*').order('nombre')
     if (fetchError) {
       setError('No pudimos cargar el catálogo de platos. Probá de nuevo en unos minutos.')
       return
@@ -54,8 +38,8 @@ export default function Platos() {
   }, [])
 
   useEffect(() => {
-    if (!cargandoSesion) cargarPlatos()
-  }, [cargandoSesion, cargarPlatos])
+    cargarPlatos()
+  }, [cargarPlatos])
 
   async function agregarPlato(e) {
     e.preventDefault()
@@ -86,25 +70,9 @@ export default function Platos() {
     }
   }
 
-  if (cargandoSesion) return null
-
   return (
-    <div style={{ minHeight: '100%', padding: '28px 20px' }}>
-      <div
-        style={{
-          maxWidth: 760,
-          margin: '0 auto',
-          background: 'var(--color-surface)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-card)',
-          border: '1px solid var(--color-border)',
-          padding: '28px 26px',
-        }}
-      >
-        <Link to="/admin" style={{ fontSize: 13, color: 'var(--color-ink-muted)', textDecoration: 'none', display: 'inline-block', marginBottom: 14 }}>
-          ← Volver al panel
-        </Link>
-
+    <AdminLayout>
+      <div style={cardStyle}>
         <h1 style={{ fontSize: 24, marginBottom: 18 }}>Catálogo de platos</h1>
 
         {error && (
@@ -113,49 +81,18 @@ export default function Platos() {
           </p>
         )}
 
-        <form
-          onSubmit={agregarPlato}
-          style={{
-            display: 'flex',
-            gap: 10,
-            flexWrap: 'wrap',
-            alignItems: 'flex-end',
-            marginBottom: 24,
-            paddingBottom: 24,
-            borderBottom: '1px solid var(--color-border)',
-          }}
-        >
+        <form onSubmit={agregarPlato} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid var(--color-border)' }}>
           <label style={{ flex: '2 1 200px' }}>
             <span style={labelStyle}>Plato nuevo</span>
-            <input
-              id="nuevo-plato-nombre"
-              name="nuevo-plato-nombre"
-              value={nuevoNombre}
-              onChange={(e) => setNuevoNombre(e.target.value)}
-              placeholder="Ej: Guiso de lentejas"
-              style={inputStyle}
-            />
+            <input id="nuevo-plato-nombre" name="nuevo-plato-nombre" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} placeholder="Ej: Guiso de lentejas" style={inputStyle} />
           </label>
           <label style={{ flex: '1 1 140px' }}>
             <span style={labelStyle}>Categoría</span>
-            <input
-              id="nuevo-plato-categoria"
-              name="nuevo-plato-categoria"
-              value={nuevaCategoria}
-              onChange={(e) => setNuevaCategoria(e.target.value)}
-              placeholder="Ej: guiso"
-              style={inputStyle}
-            />
+            <input id="nuevo-plato-categoria" name="nuevo-plato-categoria" value={nuevaCategoria} onChange={(e) => setNuevaCategoria(e.target.value)} placeholder="Ej: guiso" style={inputStyle} />
           </label>
           <label style={{ flex: '1 1 130px' }}>
             <span style={labelStyle}>Clima</span>
-            <select
-              id="nuevo-plato-clima"
-              name="nuevo-plato-clima"
-              value={nuevoClima}
-              onChange={(e) => setNuevoClima(e.target.value)}
-              style={inputStyle}
-            >
+            <select id="nuevo-plato-clima" name="nuevo-plato-clima" value={nuevoClima} onChange={(e) => setNuevoClima(e.target.value)} style={inputStyle}>
               {CLIMAS.map((c) => (
                 <option key={c.valor} value={c.valor}>
                   {c.etiqueta}
@@ -166,16 +103,7 @@ export default function Platos() {
           <button
             type="submit"
             disabled={guardandoNuevo || !nuevoNombre.trim()}
-            style={{
-              padding: '10px 18px',
-              fontSize: 15,
-              fontWeight: 600,
-              borderRadius: 'var(--radius-md)',
-              border: 'none',
-              background: 'var(--color-clay)',
-              color: '#fff',
-              whiteSpace: 'nowrap',
-            }}
+            style={{ padding: '10px 18px', fontSize: 15, fontWeight: 600, borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--color-clay)', color: '#fff', whiteSpace: 'nowrap' }}
           >
             Agregar
           </button>
@@ -213,11 +141,7 @@ export default function Platos() {
                       />
                     </td>
                     <td style={tdStyle}>
-                      <select
-                        value={plato.clima}
-                        onChange={(e) => actualizarCampo(plato, 'clima', e.target.value)}
-                        style={cellInputStyle}
-                      >
+                      <select value={plato.clima} onChange={(e) => actualizarCampo(plato, 'clima', e.target.value)} style={cellInputStyle}>
                         {CLIMAS.map((c) => (
                           <option key={c.valor} value={c.valor}>
                             {c.etiqueta}
@@ -225,15 +149,9 @@ export default function Platos() {
                         ))}
                       </select>
                     </td>
-                    <td style={{ ...tdStyle, color: 'var(--color-ink-muted)', fontSize: 14 }}>
-                      {formatUltimaVez(plato.ultima_vez_usado)}
-                    </td>
+                    <td style={{ ...tdStyle, color: 'var(--color-ink-muted)', fontSize: 14 }}>{formatUltimaVez(plato.ultima_vez_usado)}</td>
                     <td style={{ ...tdStyle, textAlign: 'center' }}>
-                      <input
-                        type="checkbox"
-                        checked={plato.activo}
-                        onChange={(e) => actualizarCampo(plato, 'activo', e.target.checked)}
-                      />
+                      <input type="checkbox" checked={plato.activo} onChange={(e) => actualizarCampo(plato, 'activo', e.target.checked)} />
                     </td>
                   </tr>
                 ))}
@@ -243,11 +161,10 @@ export default function Platos() {
         )}
 
         <p style={{ color: 'var(--color-ink-muted)', fontSize: 13, marginTop: 18 }}>
-          Los cambios se guardan solos. Destildar "Activo" oculta el plato al armar una semana nueva,
-          sin borrar su historial de uso.
+          Los cambios se guardan solos. Destildar "Activo" oculta el plato al armar una semana nueva, sin borrar su historial de uso.
         </p>
       </div>
-    </div>
+    </AdminLayout>
   )
 }
 
