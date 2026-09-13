@@ -33,6 +33,7 @@ export default function NuevaSemana() {
   const [precioGeneral, setPrecioGeneral] = useState('')
   const [precioOpcional, setPrecioOpcional] = useState('')
   const [dias, setDias] = useState(Object.fromEntries(DIAS_SEMANA.map((d) => [d, diaVacio()])))
+  const [climaSemana, setClimaSemana] = useState('cualquiera')
 
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
@@ -46,7 +47,7 @@ export default function NuevaSemana() {
       .then(({ data }) => setSemanaActivaActual(data ?? null))
 
     supabase
-      .from('platos')
+      .from('vista_uso_platos')
       .select('*')
       .eq('activo', true)
       .order('nombre')
@@ -58,6 +59,33 @@ export default function NuevaSemana() {
 
   function actualizarDia(dia, campo, valor) {
     setDias((prev) => ({ ...prev, [dia]: { ...prev[dia], [campo]: valor } }))
+  }
+
+  function sugerirPlatos() {
+    const aptos = platos.filter((p) => p.clima === climaSemana || p.clima === 'cualquiera')
+    const candidatos = (aptos.length ? aptos : platos)
+      .slice()
+      .sort((a, b) => {
+        if (!a.ultima_vez_usado && !b.ultima_vez_usado) return 0
+        if (!a.ultima_vez_usado) return -1
+        if (!b.ultima_vez_usado) return 1
+        return a.ultima_vez_usado.localeCompare(b.ultima_vez_usado)
+      })
+
+    if (candidatos.length === 0) return
+
+    const usados = new Set()
+    function elegirSiguiente() {
+      const disponible = candidatos.find((c) => !usados.has(c.id)) ?? candidatos[0]
+      usados.add(disponible.id)
+      return disponible.id
+    }
+
+    const nuevos = {}
+    for (const dia of DIAS_SEMANA) {
+      nuevos[dia] = { plato_general_id: elegirSiguiente(), plato_opcional_id: elegirSiguiente() }
+    }
+    setDias(nuevos)
   }
 
   async function guardar(e) {
@@ -127,6 +155,28 @@ export default function NuevaSemana() {
             esta, esa deja de estar activa automáticamente — no se borra, solo pasa a ser historial.
           </p>
         )}
+
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end', marginBottom: 18, flexWrap: 'wrap' }}>
+          <label style={{ flex: '1 1 200px' }}>
+            <span style={labelStyle}>Clima esperado esta semana</span>
+            <select id="clima-semana" name="clima-semana" value={climaSemana} onChange={(e) => setClimaSemana(e.target.value)} style={inputStyle}>
+              <option value="cualquiera">Cualquiera</option>
+              <option value="frio">Frío</option>
+              <option value="templado">Templado</option>
+              <option value="calor">Calor</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={sugerirPlatos}
+            style={{ padding: '10px 18px', fontSize: 15, fontWeight: 600, borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-clay-dark)', whiteSpace: 'nowrap' }}
+          >
+            Sugerir platos
+          </button>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--color-ink-muted)', marginTop: -10, marginBottom: 18 }}>
+          Prioriza los platos que hace más tiempo no se usan y van bien con ese clima. Revisá y cambiá lo que quieras antes de confirmar.
+        </p>
 
         <form onSubmit={guardar}>
           <div style={{ display: 'flex', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>

@@ -7,6 +7,9 @@ const NAV_ITEMS = [
   { to: '/admin/nueva-semana', label: 'Nueva semana' },
   { to: '/admin/platos', label: 'Platos' },
   { to: '/admin/clientes', label: 'Clientes' },
+  { to: '/admin/historial-semanas', label: 'Historial semanas' },
+  { to: '/admin/cancelaciones', label: 'Cancelaciones' },
+  { to: '/admin/historial-cliente', label: 'Historial cliente' },
 ]
 
 export const cardStyle = {
