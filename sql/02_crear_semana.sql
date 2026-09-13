@@ -1,14 +1,11 @@
-create or replace function crear_semana(
+create or replace function crear_semana (
   p_fecha_inicio date,
   p_precio_general numeric,
   p_precio_opcional numeric,
   p_dias jsonb -- [{dia_semana, fecha, plato_general, plato_opcional, notas_temperatura}, ...]
-)
-returns uuid
-security definer
-set search_path = ''
-language plpgsql
-as $$
+) returns uuid security definer
+set
+  search_path = '' language plpgsql as $$
 declare
   v_semana_id uuid;
   v_dia jsonb;
@@ -44,5 +41,9 @@ begin
 end;
 $$;
 
-revoke all on function crear_semana(date, numeric, numeric, jsonb) from public;
-grant execute on function crear_semana(date, numeric, numeric, jsonb) to authenticated;
+revoke all on function crear_semana (date, numeric, numeric, jsonb)
+from
+  public;
+
+grant
+execute on function crear_semana (date, numeric, numeric, jsonb) to authenticated;

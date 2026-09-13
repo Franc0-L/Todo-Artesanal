@@ -1,36 +1,70 @@
-truncate table pedidos, dias_menu, semanas cascade;
+truncate table pedidos,
+dias_menu,
+semanas cascade;
 
--- 2) Catálogo de platos
 create table platos (
-  id uuid primary key default gen_random_uuid(),
+  id uuid primary key default gen_random_uuid (),
   nombre text not null,
   categoria text,
-  clima text not null default 'cualquiera' check (clima in ('frio', 'templado', 'calor', 'cualquiera')),
+  clima text not null default 'cualquiera' check (
+    clima in ('frio', 'templado', 'calor', 'cualquiera')
+  ),
   activo boolean not null default true,
   creado_en timestamptz not null default now()
 );
 
 alter table platos enable row level security;
-create policy "admin_full_access_platos" on platos for all to authenticated using ((select private.es_admin())) with check ((select private.es_admin()));
-revoke all on platos from anon;
-grant select, insert, update, delete on platos to authenticated;
 
--- 3) dias_menu: texto libre -> referencia a platos
+create policy "admin_full_access_platos" on platos for all to authenticated using (
+  (
+    select
+      private.es_admin ()
+  )
+)
+with
+  check (
+    (
+      select
+        private.es_admin ()
+    )
+  );
+
+revoke all on platos
+from
+  anon;
+
+grant
+select
+,
+  insert,
+update,
+delete on platos to authenticated;
+
 alter table dias_menu
-  drop column plato_general,
-  drop column plato_opcional;
+drop column plato_general,
+drop column plato_opcional;
 
 alter table dias_menu
-  add column plato_general_id uuid not null references platos(id),
-  add column plato_opcional_id uuid not null references platos(id);
+add column plato_general_id uuid not null references platos (id),
+add column plato_opcional_id uuid not null references platos (id);
 
--- 4) Días fijos a lunes-viernes
-alter table dias_menu drop constraint if exists dias_menu_dia_semana_check;
-alter table dias_menu add constraint dias_menu_dia_semana_check
-  check (dia_semana in ('lunes', 'martes', 'miercoles', 'jueves', 'viernes'));
+alter table dias_menu
+drop constraint if exists dias_menu_dia_semana_check;
 
--- Vista de apoyo: hace cuánto no se usa cada plato (catálogo + futura generación asistida)
-create or replace view vista_uso_platos with (security_invoker = true) as
+alter table dias_menu
+add constraint dias_menu_dia_semana_check check (
+  dia_semana in (
+    'lunes',
+    'martes',
+    'miercoles',
+    'jueves',
+    'viernes'
+  )
+);
+
+create or replace view vista_uso_platos
+with
+  (security_invoker = true) as
 select
   p.id,
   p.nombre,
@@ -38,18 +72,36 @@ select
   p.clima,
   p.activo,
   greatest(
-    (select max(dm.fecha) from dias_menu dm where dm.plato_general_id = p.id),
-    (select max(dm.fecha) from dias_menu dm where dm.plato_opcional_id = p.id)
+    (
+      select
+        max(dm.fecha)
+      from
+        dias_menu dm
+      where
+        dm.plato_general_id = p.id
+    ),
+    (
+      select
+        max(dm.fecha)
+      from
+        dias_menu dm
+      where
+        dm.plato_opcional_id = p.id
+    )
   ) as ultima_vez_usado
-from platos p;
+from
+  platos p;
 
-revoke all on vista_uso_platos from public, anon;
-grant select on vista_uso_platos to authenticated;
+revoke all on vista_uso_platos
+from
+  public,
+  anon;
 
--- 5) Funciones que dependían del texto libre
+grant
+select
+  on vista_uso_platos to authenticated;
 
-create or replace function get_client_menu(p_token text)
-returns table (
+create or replace function get_client_menu (p_token text) returns table (
   cliente_nombre text,
   semana_inicio date,
   dia_menu_id uuid,
@@ -59,11 +111,9 @@ returns table (
   plato_opcional text,
   notas_temperatura text,
   eleccion_actual text
-)
-security definer
-set search_path = ''
-language sql
-as $$
+) security definer
+set
+  search_path = '' language sql as $$
   select
     c.nombre,
     s.fecha_inicio,
@@ -87,20 +137,21 @@ as $$
   order by dm.fecha;
 $$;
 
-revoke all on function get_client_menu(text) from public;
-grant execute on function get_client_menu(text) to anon;
+revoke all on function get_client_menu (text)
+from
+  public;
 
-create or replace function crear_semana(
+grant
+execute on function get_client_menu (text) to anon;
+
+create or replace function crear_semana (
   p_fecha_inicio date,
   p_precio_general numeric,
   p_precio_opcional numeric,
   p_dias jsonb -- [{dia_semana, fecha, plato_general_id, plato_opcional_id, notas_temperatura}, ...]
-)
-returns uuid
-security definer
-set search_path = ''
-language plpgsql
-as $$
+) returns uuid security definer
+set
+  search_path = '' language plpgsql as $$
 declare
   v_semana_id uuid;
   v_dia jsonb;
@@ -136,5 +187,9 @@ begin
 end;
 $$;
 
-revoke all on function crear_semana(date, numeric, numeric, jsonb) from public;
-grant execute on function crear_semana(date, numeric, numeric, jsonb) to authenticated;
+revoke all on function crear_semana (date, numeric, numeric, jsonb)
+from
+  public;
+
+grant
+execute on function crear_semana (date, numeric, numeric, jsonb) to authenticated;
