@@ -44,6 +44,13 @@ create unique index if not exists uq_dias_menu_semana_fecha
 create index if not exists idx_dias_menu_semana_fecha
   on public.dias_menu (semana_id, fecha);
 
+-- Índices específicos para las FK de dias_menu.
+create index if not exists idx_dias_menu_plato_general
+  on public.dias_menu (plato_general_id);
+
+create index if not exists idx_dias_menu_plato_opcional
+  on public.dias_menu (plato_opcional_id);
+
 create index if not exists idx_pedidos_dia_menu
   on public.pedidos (dia_menu_id);
 
