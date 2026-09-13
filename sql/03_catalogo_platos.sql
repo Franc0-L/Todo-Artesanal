@@ -2,6 +2,7 @@ truncate table pedidos,
 dias_menu,
 semanas cascade;
 
+-- 2) Catálogo de platos
 create table platos (
   id uuid primary key default gen_random_uuid (),
   nombre text not null,
@@ -40,6 +41,7 @@ select
 update,
 delete on platos to authenticated;
 
+-- 3) dias_menu: texto libre -> referencia a platos
 alter table dias_menu
 drop column plato_general,
 drop column plato_opcional;
@@ -48,6 +50,7 @@ alter table dias_menu
 add column plato_general_id uuid not null references platos (id),
 add column plato_opcional_id uuid not null references platos (id);
 
+-- 4) Días fijos a lunes-viernes
 alter table dias_menu
 drop constraint if exists dias_menu_dia_semana_check;
 
@@ -62,6 +65,7 @@ add constraint dias_menu_dia_semana_check check (
   )
 );
 
+-- Vista de apoyo: hace cuánto no se usa cada plato (catálogo + futura generación asistida)
 create or replace view vista_uso_platos
 with
   (security_invoker = true) as
@@ -101,6 +105,7 @@ grant
 select
   on vista_uso_platos to authenticated;
 
+-- 5) Funciones que dependían del texto libre
 create or replace function get_client_menu (p_token text) returns table (
   cliente_nombre text,
   semana_inicio date,
