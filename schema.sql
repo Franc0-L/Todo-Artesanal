@@ -49,7 +49,9 @@ create table if not exists clientes (
   token text not null unique default encode(gen_random_bytes(16), 'hex'),
   precio_general_especial numeric(10,2),
   precio_opcional_especial numeric(10,2),
-  creado_en timestamptz not null default now()
+  creado_en timestamptz not null default now(),
+  constraint clientes_precio_general_especial_check check (precio_general_especial is null or precio_general_especial >= 0),
+  constraint clientes_precio_opcional_especial_check check (precio_opcional_especial is null or precio_opcional_especial >= 0)
 );
 
 create table if not exists semanas (
@@ -106,6 +108,12 @@ create table if not exists pedidos (
 -- ============================================================
 create index if not exists idx_dias_menu_semana_fecha
   on dias_menu (semana_id, fecha);
+
+create index if not exists idx_dias_menu_plato_general
+  on dias_menu (plato_general_id);
+
+create index if not exists idx_dias_menu_plato_opcional
+  on dias_menu (plato_opcional_id);
 
 create index if not exists idx_pedidos_dia_menu
   on pedidos (dia_menu_id);
@@ -258,64 +266,22 @@ as $$
     dm.notas_temperatura,
     (
       select p.tipo_menu
-      from public.pedidos p
+      from pedidos p
       where p.cliente_id = c.id
         and p.dia_menu_id = dm.id
     )
-  from public.clientes c
-  join public.semanas s on s.activa = true
-  join public.dias_menu dm on dm.semana_id = s.id
-  join public.platos pg on pg.id = dm.plato_general_id
-  join public.platos po on po.id = dm.plato_opcional_id
+  from clientes c
+  join semanas s on s.activa = true
+  join dias_menu dm on dm.semana_id = s.id
+  join platos pg on pg.id = dm.plato_general_id
+  join platos po on po.id = dm.plato_opcional_id
   where c.token = p_token
     and c.activo = true
   order by dm.fecha;
 $$;
 
-create or replace function submit_order(
-  p_token text,
-  p_dia_menu_id uuid,
-  p_tipo text
-)
-returns void
-security definer
-set search_path = ''
-language plpgsql
-as $$
-declare
-  v_cliente_id uuid;
-  v_dia_menu_id uuid;
-begin
-  if p_tipo not in ('general', 'opcional', 'no_come') then
-    raise exception 'Tipo de menú inválido';
-  end if;
-
-  select id
-    into v_cliente_id
-  from public.clientes
-  where token = p_token
-    and activo = true;
-
-  if v_cliente_id is null then
-    raise exception 'Cliente no encontrado';
-  end if;
-
-  select dm.id
-    into v_dia_menu_id
-  from public.dias_menu dm
-  join public.semanas s on s.id = dm.semana_id and s.activa = true
-  where dm.id = p_dia_menu_id;
-
-  if v_dia_menu_id is null then
-    raise exception 'Día de menú no disponible';
-  end if;
-
-  insert into public.pedidos (cliente_id, dia_menu_id, tipo_menu)
-  values (v_cliente_id, v_dia_menu_id, p_tipo)
-  on conflict (cliente_id, dia_menu_id)
-  do update set tipo_menu = excluded.tipo_menu;
-end;
-$$;
+revoke all on function get_client_menu(text) from public;
+grant execute on function get_client_menu(text) to anon;
 
 -- ============================================================
 -- CREACIÓN DE SEMANA
@@ -358,15 +324,6 @@ begin
     raise exception 'La semana debe contener exactamente 5 días';
   end if;
 
-  if exists (
-    select 1
-    from jsonb_array_elements(p_dias) d
-    where not ((d ? 'dia_semana') and (d ? 'fecha')
-      and (d ? 'plato_general_id') and (d ? 'plato_opcional_id'))
-  ) then
-    raise exception 'Cada día debe indicar día, fecha y ambos platos';
-  end if;
-
   for v_dia in select * from jsonb_array_elements(p_dias)
   loop
     v_indice := v_indice + 1;
@@ -392,14 +349,17 @@ begin
       raise exception 'El plato general y opcional no pueden ser iguales el día %', v_indice;
     end if;
 
-    if not exists (select 1 from public.platos where id = v_general and activo = true)
-       or not exists (select 1 from public.platos where id = v_opcional and activo = true) then
+    if not exists (
+      select 1 from platos where id = v_general and activo = true
+    ) or not exists (
+      select 1 from platos where id = v_opcional and activo = true
+    ) then
       raise exception 'Todos los platos seleccionados deben existir y estar activos';
     end if;
   end loop;
 
   if exists (
-    select dia ->> 'dia_semana'
+    select 1
     from jsonb_array_elements(p_dias) dia
     group by dia ->> 'dia_semana'
     having count(*) <> 1
@@ -407,17 +367,23 @@ begin
     raise exception 'No puede haber días repetidos';
   end if;
 
-  update public.semanas set activa = false where activa = true;
+  update semanas
+  set activa = false
+  where activa = true;
 
-  insert into public.semanas (fecha_inicio, precio_general, precio_opcional, activa)
+  insert into semanas (fecha_inicio, precio_general, precio_opcional, activa)
   values (p_fecha_inicio, p_precio_general, p_precio_opcional, true)
   returning id into v_semana_id;
 
   for v_dia in select * from jsonb_array_elements(p_dias)
   loop
-    insert into public.dias_menu (
-      semana_id, dia_semana, fecha,
-      plato_general_id, plato_opcional_id, notas_temperatura
+    insert into dias_menu (
+      semana_id,
+      dia_semana,
+      fecha,
+      plato_general_id,
+      plato_opcional_id,
+      notas_temperatura
     )
     values (
       v_semana_id,
@@ -433,11 +399,5 @@ begin
 end;
 $$;
 
--- Las funciones con SECURITY DEFINER no quedan expuestas directamente.
-revoke all on function get_client_menu(text) from public;
-revoke all on function submit_order(text, uuid, text) from public;
 revoke all on function crear_semana(date, numeric, numeric, jsonb) from public;
-
-grant execute on function get_client_menu(text) to anon;
-grant execute on function submit_order(text, uuid, text) to anon;
 grant execute on function crear_semana(date, numeric, numeric, jsonb) to authenticated;
