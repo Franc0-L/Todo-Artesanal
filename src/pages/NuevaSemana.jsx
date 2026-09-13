@@ -6,17 +6,25 @@ import AdminLayout, { cardStyle } from './AdminLayout.jsx'
 
 const DIAS_SEMANA = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
 
+function fechaLocalISO(fecha) {
+  const año = fecha.getFullYear()
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+  const dia = String(fecha.getDate()).padStart(2, '0')
+  return `${año}-${mes}-${dia}`
+}
+
 function proximoLunes() {
   const hoy = new Date()
-  const diff = (8 - hoy.getDay()) % 7 || 7
-  hoy.setDate(hoy.getDate() + diff)
-  return hoy.toISOString().slice(0, 10)
+  const diasHastaLunes = (8 - hoy.getDay()) % 7 || 7
+  hoy.setDate(hoy.getDate() + diasHastaLunes)
+  return fechaLocalISO(hoy)
 }
 
 function sumarDias(fechaISO, n) {
-  const d = new Date(`${fechaISO}T00:00:00`)
-  d.setDate(d.getDate() + n)
-  return d.toISOString().slice(0, 10)
+  const [año, mes, dia] = fechaISO.split('-').map(Number)
+  const fecha = new Date(año, mes - 1, dia)
+  fecha.setDate(fecha.getDate() + n)
+  return fechaLocalISO(fecha)
 }
 
 function diaVacio() {
@@ -83,7 +91,10 @@ export default function NuevaSemana() {
 
     const nuevos = {}
     for (const dia of DIAS_SEMANA) {
-      nuevos[dia] = { plato_general_id: elegirSiguiente(), plato_opcional_id: elegirSiguiente() }
+      const general = elegirSiguiente()
+      let opcional = elegirSiguiente()
+      if (opcional === general && candidatos.length > 1) opcional = elegirSiguiente()
+      nuevos[dia] = { plato_general_id: general, plato_opcional_id: opcional }
     }
     setDias(nuevos)
   }
@@ -92,8 +103,21 @@ export default function NuevaSemana() {
     e.preventDefault()
     setError('')
 
-    if (!fechaInicio || !precioGeneral || !precioOpcional) {
+    if (!fechaInicio || precioGeneral === '' || precioOpcional === '') {
       setError('Completá la fecha de inicio y los dos precios.')
+      return
+    }
+
+    const precioGeneralNumero = Number(precioGeneral)
+    const precioOpcionalNumero = Number(precioOpcional)
+    if (!Number.isFinite(precioGeneralNumero) || precioGeneralNumero < 0 || !Number.isFinite(precioOpcionalNumero) || precioOpcionalNumero < 0) {
+      setError('Los precios deben ser números válidos mayores o iguales a 0.')
+      return
+    }
+
+    const diaInicio = new Date(`${fechaInicio}T12:00:00`)
+    if (diaInicio.getDay() !== 1) {
+      setError('La fecha de inicio debe ser un lunes.')
       return
     }
 
@@ -103,9 +127,15 @@ export default function NuevaSemana() {
       return
     }
 
-    const p_dias = DIAS_SEMANA.map((d) => ({
+    const repetido = DIAS_SEMANA.find((d) => dias[d].plato_general_id === dias[d].plato_opcional_id)
+    if (repetido) {
+      setError(`El plato general y opcional no pueden ser iguales el ${DIA_LABEL[repetido]}.`)
+      return
+    }
+
+    const p_dias = DIAS_SEMANA.map((d, indice) => ({
       dia_semana: d,
-      fecha: sumarDias(fechaInicio, DIAS_SEMANA.indexOf(d)),
+      fecha: sumarDias(fechaInicio, indice),
       plato_general_id: dias[d].plato_general_id,
       plato_opcional_id: dias[d].plato_opcional_id,
     }))
@@ -113,15 +143,17 @@ export default function NuevaSemana() {
     setGuardando(true)
     const { error: rpcError } = await supabase.rpc('crear_semana', {
       p_fecha_inicio: fechaInicio,
-      p_precio_general: Number(precioGeneral),
-      p_precio_opcional: Number(precioOpcional),
+      p_precio_general: precioGeneralNumero,
+      p_precio_opcional: precioOpcionalNumero,
       p_dias,
     })
     setGuardando(false)
 
     if (rpcError) {
       console.error(rpcError)
-      setError('No pudimos crear la semana. Revisá los datos e intentá de nuevo.')
+      setError(rpcError.message?.includes('duplicate key')
+        ? 'Ya existe una semana con esa fecha de inicio.'
+        : 'No pudimos crear la semana. Revisá los datos e intentá de nuevo.')
       return
     }
 
@@ -186,11 +218,11 @@ export default function NuevaSemana() {
             </label>
             <label style={{ flex: '1 1 140px' }}>
               <span style={labelStyle}>Precio general</span>
-              <input type="number" id="precio-general" name="precio-general" min="0" inputMode="decimal" value={precioGeneral} onChange={(e) => setPrecioGeneral(e.target.value)} style={inputStyle} />
+              <input type="number" id="precio-general" name="precio-general" min="0" step="0.01" inputMode="decimal" value={precioGeneral} onChange={(e) => setPrecioGeneral(e.target.value)} style={inputStyle} />
             </label>
             <label style={{ flex: '1 1 140px' }}>
               <span style={labelStyle}>Precio opcional</span>
-              <input type="number" id="precio-opcional" name="precio-opcional" min="0" inputMode="decimal" value={precioOpcional} onChange={(e) => setPrecioOpcional(e.target.value)} style={inputStyle} />
+              <input type="number" id="precio-opcional" name="precio-opcional" min="0" step="0.01" inputMode="decimal" value={precioOpcional} onChange={(e) => setPrecioOpcional(e.target.value)} style={inputStyle} />
             </label>
           </div>
 
@@ -201,17 +233,13 @@ export default function NuevaSemana() {
                 <select id={`${dia}-general`} name={`${dia}-general`} value={dias[dia].plato_general_id} onChange={(e) => actualizarDia(dia, 'plato_general_id', e.target.value)} style={inputStyle}>
                   <option value="">Elegí el plato general…</option>
                   {platos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
+                    <option key={p.id} value={p.id}>{p.nombre}</option>
                   ))}
                 </select>
                 <select id={`${dia}-opcional`} name={`${dia}-opcional`} value={dias[dia].plato_opcional_id} onChange={(e) => actualizarDia(dia, 'plato_opcional_id', e.target.value)} style={inputStyle}>
                   <option value="">Elegí el plato opcional…</option>
                   {platos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
+                    <option key={p.id} value={p.id}>{p.nombre}</option>
                   ))}
                 </select>
               </div>
@@ -224,11 +252,7 @@ export default function NuevaSemana() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={guardando}
-            style={{ width: '100%', padding: '14px 0', fontSize: 16, fontWeight: 600, borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--color-clay)', color: '#fff' }}
-          >
+          <button type="submit" disabled={guardando} style={{ width: '100%', padding: '14px 0', fontSize: 16, fontWeight: 600, borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--color-clay)', color: '#fff' }}>
             {guardando ? 'Creando semana…' : 'Crear y activar esta semana'}
           </button>
         </form>
