@@ -75,15 +75,20 @@ export default function NuevaSemana() {
     if (candidatos.length === 0) return
 
     const usados = new Set()
-    function elegirSiguiente() {
-      const disponible = candidatos.find((c) => !usados.has(c.id)) ?? candidatos[0]
+    function elegirSiguiente(excluirId) {
+      const disponible =
+        candidatos.find((c) => !usados.has(c.id) && c.id !== excluirId) ??
+        candidatos.find((c) => c.id !== excluirId) ??
+        candidatos[0]
       usados.add(disponible.id)
       return disponible.id
     }
 
     const nuevos = {}
     for (const dia of DIAS_SEMANA) {
-      nuevos[dia] = { plato_general_id: elegirSiguiente(), plato_opcional_id: elegirSiguiente() }
+      const general = elegirSiguiente()
+      const opcional = elegirSiguiente(general)
+      nuevos[dia] = { plato_general_id: general, plato_opcional_id: opcional }
     }
     setDias(nuevos)
   }
@@ -100,6 +105,12 @@ export default function NuevaSemana() {
     const faltante = DIAS_SEMANA.find((d) => !dias[d].plato_general_id || !dias[d].plato_opcional_id)
     if (faltante) {
       setError(`Falta elegir el plato general u opcional de ${DIA_LABEL[faltante]}.`)
+      return
+    }
+
+    const repetido = DIAS_SEMANA.find((d) => dias[d].plato_general_id === dias[d].plato_opcional_id)
+    if (repetido) {
+      setError(`El plato general y el opcional de ${DIA_LABEL[repetido]} no pueden ser el mismo.`)
       return
     }
 
