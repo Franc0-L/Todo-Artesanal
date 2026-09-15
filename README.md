@@ -7,12 +7,27 @@ ya calculados, y el historial de semanas y clientes.
 ## 1. Crear el proyecto en Supabase
 
 1. Entrá a [supabase.com](https://supabase.com) y creá un proyecto nuevo (gratis).
-2. En **SQL Editor > New query**, corré los archivos de `sql/` **en orden**, uno por
-   uno (`01_esquema.sql`, `02_crear_semana.sql`, `03_catalogo_platos.sql`, así hasta
-   el último). Cada uno depende de que el anterior ya haya corrido.
-3. En **Authentication > Users**, creá manualmente un usuario (el email/contraseña que
-   va a usar tu mamá para entrar al panel). No hace falta que se registre nadie más.
-4. En **SQL Editor**, después de crear ese usuario, ejecutá lo siguiente y reemplazá
+2. Instalá el [CLI de Supabase](https://supabase.com/docs/guides/local-development/cli/getting-started)
+   si todavía no lo tenés, y logueate: `supabase login`.
+3. Vinculá este repo a tu proyecto (te pide el project ref, lo sacás de la URL del
+   dashboard):
+
+   ```bash
+   supabase link --project-ref <TU_PROJECT_REF>
+   ```
+4. Aplicá todas las migraciones de una sola vez:
+
+   ```bash
+   supabase db push
+   ```
+
+   Esto crea las tablas, la vista de montos, los permisos, el catálogo de platos y
+   todas las funciones — en el orden correcto, sin tener que pegar nada a mano en
+   el SQL Editor.
+5. En **Authentication > Users** del dashboard, creá manualmente un usuario (el
+   email/contraseña que va a usar tu mamá para entrar al panel). No hace falta que
+   se registre nadie más.
+6. En **SQL Editor**, después de crear ese usuario, ejecutá lo siguiente y reemplazá
    `<UUID_DEL_USUARIO>` por su UUID (visible en Authentication > Users):
 
    ```sql
@@ -20,7 +35,28 @@ ya calculados, y el historial de semanas y clientes.
    ```
 
    Esto es necesario para que solo esa cuenta pueda ver y modificar datos del panel.
-5. En **Project Settings > API**, copiá la **Project URL** y la **anon public key**.
+7. En **Project Settings > API**, copiá la **Project URL** y la **anon public key**.
+
+### Si ya tenés este proyecto corriendo en Supabase
+
+Si tu base ya tiene todo esto aplicado a mano (como veníamos haciendo hasta ahora),
+`supabase db push` va a fallar porque intenta crear cosas que ya existen. Marcá cada
+migración como ya aplicada, sin volver a ejecutarla, una por una en orden:
+
+```bash
+supabase migration repair --status applied 20260910100001
+supabase migration repair --status applied 20260910100002
+supabase migration repair --status applied 20260910100003
+supabase migration repair --status applied 20260910100004
+supabase migration repair --status applied 20260910100005
+supabase migration repair --status applied 20260910100006
+supabase migration repair --status applied 20260910100007
+supabase migration repair --status applied 20260910100008
+```
+
+De ahí en más, cualquier cambio nuevo se hace con `supabase migration new <nombre>`
+y se aplica con `supabase db push` — un solo comando, nunca más copiar y pegar SQL
+a mano.
 
 ## 2. Configurar el proyecto
 

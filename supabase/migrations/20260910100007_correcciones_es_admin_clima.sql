@@ -1,5 +1,17 @@
+-- Todo Artesanal — correcciones 07
+-- Corré esto después de 06_security_submit_order.sql.
+
+-- 1) El grant que faltaba desde el principio: sin esto, cualquier política RLS
+--    o función que llama a private.es_admin() falla con
+--    "permission denied for function es_admin". Es seguro correrlo aunque ya
+--    lo hayas aplicado a mano antes (es idempotente).
 grant execute on function private.es_admin() to authenticated;
 
+-- 2) get_client_menu: se saca el filtro "activo = true" de los platos.
+--    "Activo" sirve para ocultar un plato al armar semanas NUEVAS (ver Platos.jsx),
+--    no para esconder retroactivamente un día que un cliente ya puede estar viendo
+--    en la semana activa. Con el filtro puesto, desactivar un plato usado en la
+--    semana actual hacía desaparecer el día entero de la pantalla del cliente.
 drop function if exists public.get_client_menu(text);
 
 create or replace function public.get_client_menu(p_token text)
