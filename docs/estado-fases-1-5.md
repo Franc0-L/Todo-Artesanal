@@ -1,4 +1,4 @@
-# Todo Artesanal v2 — Estado de Fases 1–5 (en curso)
+# Todo Artesanal v2 — Estado de Fases 1–5 (completa)
 
 ## Propósito
 
@@ -403,24 +403,26 @@ Si en el futuro se necesitan filtros, agregar policy sobre `dishes`.
 - `dish_versions: rechazar UPDATE/DELETE` (trigger)
 - `menu_versions: rechazar UPDATE/DELETE` (trigger)
 - `weeks closed: rechazar INSERT/UPDATE/DELETE sobre week_days,
-  week_day_options, orders, cancellations de esa semana`
+week_day_options, orders, cancellations de esa semana`
 
 ---
 
-# Fase 5 — Implementación backend (en curso)
+# Fase 5 — Implementación backend (completa)
 
 ## Fase 5A — Migraciones aplicadas
 
 - Proyecto Supabase: `Todo-Artesanal` (linkeado).
-- 5 migraciones aplicadas (aplicadas en este orden):
+- 7 migraciones aplicadas (en orden):
   - `20260923000001_schema.sql`
   - `20260923000002_functions.sql`
   - `20260923000003_triggers.sql`
   - `20260923000004_rls.sql`
   - `20260923000005_admin_setup.sql`
+  - `20260924000001_menu_rpc.sql`
+  - `20260924000002_week_rpc.sql`
 - 15 tablas en `public`.
 - Funciones privadas en `private` (`is_admin`, `current_client_id`).
-- Funciones públicas (`calculate_order_price`, `activate_week`, `close_week`).
+- Funciones públicas de dominio: `calculate_order_price`, `activate_week`, `close_week`, `create_menu`, `create_menu_version`, `create_week`, `update_week`.
 - 1 admin creado en `private.admin_users`.
 
 ## Fase 5B — Tipos y helpers
@@ -440,7 +442,7 @@ Si en el futuro se necesitan filtros, agregar policy sobre `dishes`.
 - `src/lib/formatters.ts` — `formatCurrency`, `formatDate`, `formatDateRange`.
 - `src/vite-env.d.ts` — declaración de `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
 
-## Fase 5C — Servicios (en curso)
+## Fase 5C — Servicios (completa)
 
 ### Patrón establecido
 
@@ -450,34 +452,53 @@ Si en el futuro se necesitan filtros, agregar policy sobre `dishes`.
   - `runSupabaseFull<T>` → `{ data, count, status }`
   - `runSupabaseOrThrow<T>` → `T` (falla con NOT_FOUND si null)
   - Todos aceptan `() => PromiseLike<SupabaseResult<T>>`.
-- Genéricos explícitos en cada llamada (`runSupabaseOrThrow<ClientRow>(...)`). La inferencia no funciona con `PostgrestBuilder`.
+- Genéricos explícitos en cada llamada. La inferencia no funciona con `PostgrestBuilder`.
 - Validación manual de inputs con `AppError` (sin Zod).
 - `validateUuid` con regex antes de usar IDs.
 - `escapeIlikePattern` antes de `.or(...ilike...)`.
 - Mappers snake_case (DB) → camelCase (app).
-- Retorno tipos de dominio (`Client`, `Dish`), no `Tables<'...'>`.
+- Retorno tipos de dominio, no `Tables<'...'>`.
 - Uso de `Tables<>`, `TablesInsert<>`, `TablesUpdate<>` de `database.ts`.
 - `deleteX` documenta advertencias de FK.
+- RPCs que devuelven `void` usan `runSupabase` (no `runSupabaseOrThrow`).
 
 ### Servicios implementados
 
 **clientes/**
+
 - `clients.service.ts`: listClients, getClient, createClient, updateClient, setClientActive, deleteClient.
 - `client-prices.service.ts`: getClientPrices, setClientPrice, removeClientPrice, listClientProductPrices, setClientProductPrice, removeClientProductPrice.
 - `client-tokens.service.ts`: getActiveTokenStatus, rotateClientToken (llama Edge Function pendiente).
 
 **platos/**
-- `dishes.service.ts`: listDishes, getDish, createDish (crea identidad + versión 1 con rollback manual), updateDish, setDishActive, deleteDish.
+
+- `dishes.service.ts`: listDishes, getDish, createDish (identidad + versión 1 con rollback manual), updateDish, setDishActive, deleteDish.
 - `dish-versions.service.ts`: listDishVersions, getDishVersion, createDishVersion.
-- `dish-usage.service.ts`: getDishUsage, getRecentDishUsage, getDishSuggestions (sin algoritmo de scoring).
+- `dish-usage.service.ts`: getDishUsage, getRecentDishUsage, getDishSuggestions.
 
-### Servicios pendientes
+**menus/**
 
-- `menus`: menus.service.ts, menu-versions.service.ts.
-- `semanas`: weeks.service.ts, week-days.service.ts, week-offer.service.ts, week-expected-clients.service.ts.
-- `pedidos`: orders.service.ts.
-- `cancelaciones`: cancellations.service.ts.
-- `historial`: history.service.ts.
+- `menus.service.ts`: listMenus, getMenu, createMenu (RPC create_menu), setMenuActive, deleteMenu.
+- `menu-versions.service.ts`: listMenuVersions, getMenuVersion, getLatestMenuVersion, createMenuVersion (RPC create_menu_version).
+
+**semanas/**
+
+- `weeks.service.ts`: listWeeks, getWeek, getActiveWeek, createWeek (RPC create_week), updateWeek (RPC update_week), activateWeek (RPC activate_week), closeWeek (RPC close_week).
+- `week-days.service.ts`: listWeekDays, getWeekDay.
+- `week-offer.service.ts`: listDayOptions, getWeekOffer, addDayOption, updateDayOption, removeDayOption.
+- `week-expected-clients.service.ts`: getExpectedClients, getExpectedClientCount.
+
+**pedidos/**
+
+- `orders.service.ts`: listOrders, getOrder, createOrder, updateOrder, deleteOrder, getOrderTotals.
+
+**cancelaciones/**
+
+- `cancellations.service.ts`: listCancellations, getCancellation, createCancellation, deleteCancellation.
+
+**historial/**
+
+- `history.service.ts`: listHistoricalWeeks, getClientHistory, getUnansweredClients.
 
 ### TODOs anotados en el código
 
@@ -485,35 +506,48 @@ Si en el futuro se necesitan filtros, agregar policy sobre `dishes`.
 - `dish-versions.service.ts` createDishVersion: race condition teórica entre MAX+1 e INSERT. UNIQUE evita corrupción.
 - `dish-usage.service.ts`: uso actual = solo platos ofrecidos directamente. No cuenta dentro de menús.
 - `dish-usage.service.ts`: agregaciones en cliente. Migrar a vista o RPC si crece el volumen.
+- `createDish` sigue usando rollback manual. Convive con el problema conceptual de no-transacción, aunque no lo expone porque `dishes` no tiene trigger inmutable. TODO: migrar a RPC cuando toque refactor.
+- `menus.service.ts` listMenus: búsqueda por `.in()` + agregación de itemCount en cliente. Migrar a vista si crece.
+- `menu-versions.service.ts`: race condition teórica en create_menu_version (ya resuelto parcialmente por el RPC que envuelve todo en una transacción; el UNIQUE evita corrupción).
+- `weeks.service.ts` updateWeek: borra week_day_options existentes (cascade). Documentado; evaluar flag `confirmDeleteOptions` en el futuro.
+- `history.service.ts`: agregados (totalAmount, unanswered, etc.) calculados en cliente. Migrar a vista o RPC si el volumen crece.
+- `orders.service.ts` getOrderTotals: SUM en cliente. Migrar a vista o RPC si crece.
 - `client-tokens.service.ts`: Edge Function `rotate-client-token` pendiente.
 
-## Pendientes — Fase 5 en adelante
+---
 
-### Edge Function
+# Pendientes — Fase 5 en adelante
+
+## Edge Function
 
 - `rotate-client-token`: valida token, emite JWT con claim `client_id`, invalida token anterior.
+- Es el único pedazo del backend que falta.
 
-### Reportes
+## Reportes
 
 - Vistas o funciones de reporte de montos consolidados.
 
-### Features frontend
+## Features frontend
 
 - UI de admin (`/admin`).
 - UI de cliente (`/menu/:token`).
 - Toda la capa de React.
 
+## Tests
+
+- Tests de invariantes contra la DB real.
+
 ---
 
 # Archivos SQL generados
 
-## schema-v1.sql
+## 20260923000001_schema.sql
 
 - DDL base completo. Estructura base (tablas, constraints, índices).
-- Incluye el ajuste `clients.allows_half_portion`.
+- Incluye `clients.allows_half_portion`.
 - NO incluye funciones, triggers, RLS, datos iniciales.
 
-## 01_functions.sql
+## 20260923000002_functions.sql
 
 - `calculate_order_price(client_id, week_day_option_id, modality)`
   - precedencia: dish_specific > client_prices[modalidad] > base_price
@@ -527,7 +561,7 @@ Si en el futuro se necesitan filtros, agregar policy sobre `dishes`.
 - `close_week(week_id)` — active → closed
   - security definer + chequeo admin
 
-## 02_triggers.sql
+## 20260923000003_triggers.sql
 
 - Inmutabilidad dish_versions / menu_versions (UPDATE/DELETE)
 - `menu_version_items`: constraint trigger DEFERRABLE INITIALLY DEFERRED
@@ -541,7 +575,7 @@ Si en el futuro se necesitan filtros, agregar policy sobre `dishes`.
 - `week_day_options`: congelamiento post-pedido
 - `orders ↔ cancellations`: no coexistencia (cliente + día)
 
-## 03_rls.sql
+## 20260923000004_rls.sql
 
 - `create schema if not exists private`
 - `private.admin_users` (tabla)
@@ -553,7 +587,32 @@ Si en el futuro se necesitan filtros, agregar policy sobre `dishes`.
 - Grants de tablas y funciones
 - Grants defensivos para service_role
 
-## 04_admin_setup.sql
+## 20260923000005_admin_setup.sql
 
 - INSERT del primer administrador (comentado, placeholder UUID).
 - Comentarios con instrucciones para agregar futuros admins.
+
+## 20260924000001_menu_rpc.sql
+
+- `create_menu(p_name, p_price, p_items jsonb, p_active bool) → uuid`
+  - security definer + is_admin()
+  - valida: nombre no vacío, precio ≥ 0, items array no vacío, sin
+    dish_version_id repetidos, exactamente 1 main, dish_versions existen
+  - inserta menus + menu_versions (v1) + menu_version_items en una
+    transacción
+- `create_menu_version(p_menu_id, p_name, p_price, p_items jsonb) → uuid`
+  - mismas validaciones
+  - calcula MAX(version_number) + 1
+  - inserta en una transacción
+
+## 20260924000002_week_rpc.sql
+
+- `create_week(p_start_date date, p_end_date date) → uuid`
+  - security definer + is_admin()
+  - valida: lunes a viernes, 5 días exactos, fechas válidas
+  - inserta weeks (draft) + 5 week_days en una transacción
+  - el EXCLUDE gist weeks_no_overlap impide solapamiento (23P01)
+- `update_week(p_week_id, p_start_date, p_end_date)`
+  - solo permite modificar semanas en draft
+  - borra week_days actuales (cascade a week_day_options) y recrea
+  - ADVERTENCIA documentada: si había opciones cargadas, se pierden
