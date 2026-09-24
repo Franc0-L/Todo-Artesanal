@@ -9,6 +9,7 @@ import type {
 
 interface RotateTokenResponse {
   token: string;
+  clientId: string;
 }
 
 /**
@@ -37,9 +38,13 @@ export async function getActiveTokenStatus(
 /**
  * Rota el token personal del cliente.
  *
- * La generación real del token se realiza mediante una Edge
- * Function. La implementación de dicha Edge Function queda
- * pendiente.
+ * La generación del token la hace la Edge Function
+ * `rotate-client-token`, que:
+ *  - valida que el caller sea admin;
+ *  - invalida el token vigente anterior;
+ *  - genera un token random (32 bytes, base64url);
+ *  - persiste únicamente el hash (SHA-256);
+ *  - devuelve el token en texto plano UNA SOLA VEZ.
  *
  * El token en texto plano se devuelve únicamente en esta
  * respuesta y no debe persistirse en el frontend.
@@ -64,7 +69,7 @@ export async function rotateClientToken(
       throw mapFunctionsError(error);
     }
 
-    if (!data?.token) {
+    if (!data?.token || !data?.clientId) {
       throw new AppError(
         "DATABASE_ERROR",
         "La Edge Function no devolvió un token válido.",
@@ -72,7 +77,7 @@ export async function rotateClientToken(
     }
 
     return {
-      clientId,
+      clientId: data.clientId,
       token: data.token,
     };
   } catch (error) {
