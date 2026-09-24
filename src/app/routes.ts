@@ -1,5 +1,14 @@
+export type AdminRoutePath =
+  | "/admin"
+  | "/admin/clientes"
+  | "/admin/platos"
+  | "/admin/menus"
+  | "/admin/semanas"
+  | "/admin/pedidos"
+  | "/admin/historial";
+
 export type AppRoute =
-  | { kind: "admin"; path: "/admin" }
+  | { kind: "admin"; path: AdminRoutePath }
   | { kind: "client-menu"; path: "/menu/:token"; token: string }
   | { kind: "home"; path: "/" }
   | { kind: "not-found"; path: string };
@@ -8,7 +17,20 @@ export function resolveRoute(pathname: string): AppRoute {
   const normalizedPath = pathname.replace(/\/+$/, "") || "/";
 
   if (normalizedPath === "/") return { kind: "home", path: "/" };
-  if (normalizedPath === "/admin") return { kind: "admin", path: "/admin" };
+
+  const adminPaths: AdminRoutePath[] = [
+    "/admin",
+    "/admin/clientes",
+    "/admin/platos",
+    "/admin/menus",
+    "/admin/semanas",
+    "/admin/pedidos",
+    "/admin/historial",
+  ];
+
+  if (adminPaths.includes(normalizedPath as AdminRoutePath)) {
+    return { kind: "admin", path: normalizedPath as AdminRoutePath };
+  }
 
   const menuMatch = normalizedPath.match(/^\/menu\/([^/]+)$/);
   if (menuMatch) {
@@ -20,4 +42,11 @@ export function resolveRoute(pathname: string): AppRoute {
   }
 
   return { kind: "not-found", path: normalizedPath };
+}
+
+export function navigate(path: string): void {
+  if (path === window.location.pathname) return;
+
+  window.history.pushState({}, "", path);
+  window.dispatchEvent(new PopStateEvent("popstate"));
 }
