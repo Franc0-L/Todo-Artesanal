@@ -31,7 +31,7 @@ export function AdminLoginPage() {
         <h1 id="admin-login-title">Acceso administrativo</h1>
         <p>Iniciá sesión para administrar Todo Artesanal.</p>
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit}>
           <div>
             <label htmlFor="admin-email">Correo electrónico</label>
             <input
