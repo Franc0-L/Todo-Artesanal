@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { AdminSectionPage } from "../features/admin/AdminSectionPage";
 import { AdminLoginPage } from "../features/auth/AdminLoginPage";
 import { useAuth } from "../features/auth/AuthProvider";
 import { AdminShell } from "../features/admin/AdminShell";
@@ -17,7 +18,7 @@ function getServerLocation() {
   return "/";
 }
 
-function AdminRoute() {
+function AdminRoute({ path }: { path: Extract<ReturnType<typeof resolveRoute>, { kind: "admin" }>['path'] }) {
   const { status, error } = useAuth();
 
   if (status === "loading") {
@@ -32,19 +33,14 @@ function AdminRoute() {
     return (
       <main>
         <h1>No se puede acceder al área administrativa</h1>
-        <p role="alert">
-          {error ?? "Ocurrió un error al verificar la sesión."}
-        </p>
+        <p role="alert">{error ?? "Ocurrió un error al verificar la sesión."}</p>
       </main>
     );
   }
 
   return (
-    <AdminShell>
-      <section>
-        <h1>Panel administrativo</h1>
-        <p>La sesión administrativa está activa.</p>
-      </section>
+    <AdminShell currentPath={path}>
+      <AdminSectionPage path={path} />
     </AdminShell>
   );
 }
@@ -59,7 +55,7 @@ export function AppRouter() {
 
   switch (route.kind) {
     case "admin":
-      return <AdminRoute />;
+      return <AdminRoute path={route.path} />;
     case "client-menu":
       return <div>Menú del cliente</div>;
     case "home":
