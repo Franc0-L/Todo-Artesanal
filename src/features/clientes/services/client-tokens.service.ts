@@ -3,6 +3,7 @@ import { supabase } from "../../../lib/supabase";
 import { runSupabase, toAppError } from "../../../lib/error-handler";
 import { AppError } from "../../../lib/errors";
 import type {
+  AuthenticatedClientToken,
   ClientTokenStatus,
   RotatedClientToken,
 } from "../types/client-token";
@@ -10,6 +11,12 @@ import type {
 interface RotateTokenResponse {
   token: string;
   clientId: string;
+}
+
+interface AuthenticateTokenResponse {
+  token: string;
+  clientId: string;
+  expiresAt: string;
 }
 
 /**
@@ -89,11 +96,87 @@ export async function rotateClientToken(
   }
 }
 
+/**
+ * Intercambia un token personal (que viaja en /menu/:token) por
+ * un JWT firmado con claim client_id.
+ *
+ * Es una llamada PÚBLICA: no requiere JWT de admin. El cliente
+ * la invoca al entrar a su link personal.
+ *
+ * La Edge Function:
+ *  - computa SHA-256 del token recibido;
+ *  - busca una fila vigente en client_tokens;
+ *  - si no existe, devuelve 401 (token inválido o expirado);
+ *  - si existe, firma un JWT con claim client_id y lo devuelve.
+ *
+ * El JWT devuelto debe guardarse en el frontend (cookie
+ * httpOnly o storage según la estrategia) y usarse para
+ * autenticar las llamadas a Supabase como cliente.
+ */
+export async function authenticateClientToken(
+  plaintextToken: string,
+): Promise<AuthenticatedClientToken> {
+  validatePlaintextToken(plaintextToken);
+
+  try {
+    const { data, error } =
+      await supabase.functions.invoke<AuthenticateTokenResponse>(
+        "authenticate-client-token",
+        {
+          body: {
+            token: plaintextToken,
+          },
+        },
+      );
+
+    if (error) {
+      throw mapFunctionsError(error);
+    }
+
+    if (!data?.token || !data?.clientId || !data?.expiresAt) {
+      throw new AppError(
+        "DATABASE_ERROR",
+        "La Edge Function no devolvió una autenticación válida.",
+      );
+    }
+
+    return {
+      token: data.token,
+      clientId: data.clientId,
+      expiresAt: data.expiresAt,
+    };
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+
+    throw toAppError(error);
+  }
+}
+
 function mapFunctionsError(error: FunctionsHttpError): AppError {
   const status = error.context?.status;
 
-  if (status === 401 || status === 403) {
+  if (status === 400) {
+    return new AppError("VALIDATION_ERROR", error.message, {
+      cause: error,
+    });
+  }
+
+  if (status === 401) {
+    return new AppError("UNAUTHORIZED", error.message, {
+      cause: error,
+    });
+  }
+
+  if (status === 403) {
     return new AppError("FORBIDDEN", error.message, {
+      cause: error,
+    });
+  }
+
+  if (status === 404) {
+    return new AppError("NOT_FOUND", error.message, {
       cause: error,
     });
   }
@@ -111,5 +194,14 @@ function validateClientId(clientId: string): void {
     )
   ) {
     throw new AppError("VALIDATION_ERROR", "clientId debe ser un UUID válido.");
+  }
+}
+
+function validatePlaintextToken(token: string): void {
+  if (typeof token !== "string" || token.length < 16) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "El token debe ser un texto no vacío.",
+    );
   }
 }
