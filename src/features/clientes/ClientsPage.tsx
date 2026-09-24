@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { ClientDrawer } from "./ClientDrawer";
 import { listClients } from "./services/clients.service";
 import type { ClientListItem } from "./types/client-list";
 import "./clients.css";
@@ -14,6 +15,7 @@ export function ClientsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,7 +105,16 @@ export function ClientsPage() {
             <tbody>
               {items.map((client) => (
                 <tr key={client.id}>
-                  <td>{client.name}</td><td>{client.phone ?? "—"}</td><td>{client.address ?? "—"}</td>
+                  <td>
+                    <button
+                      className="client-name-button"
+                      type="button"
+                      onClick={() => setSelectedClientId(client.id)}
+                    >
+                      {client.name}
+                    </button>
+                  </td>
+                  <td>{client.phone ?? "—"}</td><td>{client.address ?? "—"}</td>
                   <td><span className={`clients-status clients-status--${client.active ? "active" : "inactive"}`}>{client.active ? "Activo" : "Inactivo"}</span></td>
                 </tr>
               ))}
@@ -121,6 +132,11 @@ export function ClientsPage() {
           </div>
         </nav>
       )}
+
+      <ClientDrawer
+        clientId={selectedClientId}
+        onClose={() => setSelectedClientId(null)}
+      />
     </section>
   );
 }
