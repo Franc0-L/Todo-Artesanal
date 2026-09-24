@@ -40,6 +40,10 @@ export function ClientsPage() {
     }
   }, [page, search, statusFilter]);
 
+  const handleCloseDrawer = useCallback(() => {
+    setSelectedClientId(null);
+  }, []);
+
   useEffect(() => {
     void loadClients();
   }, [loadClients]);
@@ -106,11 +110,7 @@ export function ClientsPage() {
               {items.map((client) => (
                 <tr key={client.id}>
                   <td>
-                    <button
-                      className="client-name-button"
-                      type="button"
-                      onClick={() => setSelectedClientId(client.id)}
-                    >
+                    <button className="client-name-button" type="button" onClick={() => setSelectedClientId(client.id)}>
                       {client.name}
                     </button>
                   </td>
@@ -133,10 +133,7 @@ export function ClientsPage() {
         </nav>
       )}
 
-      <ClientDrawer
-        clientId={selectedClientId}
-        onClose={() => setSelectedClientId(null)}
-      />
+      <ClientDrawer clientId={selectedClientId} onClose={handleCloseDrawer} />
     </section>
   );
 }
