@@ -1,9 +1,7 @@
+import { AppRouter } from "./app/AppRouter";
+
 function App() {
-  return (
-    <main>
-      <h1>Todo Artesanal</h1>
-    </main>
-  );
+  return <AppRouter />;
 }
 
 export default App;
