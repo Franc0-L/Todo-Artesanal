@@ -99,7 +99,12 @@ function mapFunctionsError(error: FunctionsHttpError): AppError {
 }
 
 function validateClientId(clientId: string): void {
-  if (!clientId?.trim()) {
-    throw new Error("El clientId es obligatorio.");
+  if (
+    typeof clientId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      clientId,
+    )
+  ) {
+    throw new AppError("VALIDATION_ERROR", "clientId debe ser un UUID válido.");
   }
 }
