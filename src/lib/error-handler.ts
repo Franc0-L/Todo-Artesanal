@@ -6,8 +6,13 @@ interface SupabaseResult<T> {
   error: PostgrestError | null;
 }
 
+interface SupabaseFullResult<T> extends SupabaseResult<T> {
+  count?: number | null;
+  status?: number;
+}
+
 export async function runSupabase<T>(
-  operation: () => Promise<SupabaseResult<T>>,
+  operation: () => PromiseLike<SupabaseResult<T>>,
 ): Promise<T | null> {
   try {
     const { data, error } = await operation();
@@ -26,8 +31,36 @@ export async function runSupabase<T>(
   }
 }
 
+export async function runSupabaseFull<T>(
+  operation: () => PromiseLike<SupabaseFullResult<T>>,
+): Promise<{
+  data: T | null;
+  count: number | null;
+  status: number;
+}> {
+  try {
+    const response = await operation();
+
+    if (response.error) {
+      throw toAppError(response.error);
+    }
+
+    return {
+      data: response.data,
+      count: response.count ?? null,
+      status: response.status ?? 200,
+    };
+  } catch (error) {
+    if (isAppError(error)) {
+      throw error;
+    }
+
+    throw toAppError(error);
+  }
+}
+
 export async function runSupabaseOrThrow<T>(
-  operation: () => Promise<SupabaseResult<T>>,
+  operation: () => PromiseLike<SupabaseResult<T>>,
 ): Promise<T> {
   const data = await runSupabase(operation);
 
