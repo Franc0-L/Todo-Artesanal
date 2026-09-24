@@ -31,9 +31,13 @@ interface WeekDayOptionWithRefs {
 /**
  * Obtiene información agregada de uso de un plato.
  *
- * "Uso" = cantidad de veces que el plato fue ofrecido
- * directamente en la oferta de un día (week_day_options con
+ * "Uso" = cantidad de días únicos en los que el plato fue
+ * ofrecido directamente en la oferta (week_day_options con
  * option_type='dish').
+ *
+ * Se cuentan días únicos, no apariciones: si el mismo plato
+ * (o distintas versiones del mismo plato) aparece en varias
+ * opciones del mismo día, ese día cuenta una sola vez.
  *
  * TODO: no cuenta usos indirectos (plato dentro de un menú
  * ofrecido). Si en el futuro hace falta, migrar a una vista o
@@ -64,8 +68,7 @@ export async function getDishUsage(
       .eq("dish_id", dishId),
   );
 
-  let totalUses = 0;
-  let lastUsedAt: string | null = null;
+  const datesUsed = new Set<string>();
 
   for (const version of versions ?? []) {
     for (const option of version.week_day_options ?? []) {
@@ -76,17 +79,17 @@ export async function getDishUsage(
       if (params.fromDate && date < params.fromDate) continue;
       if (params.toDate && date > params.toDate) continue;
 
-      totalUses += 1;
-
-      if (!lastUsedAt || date > lastUsedAt) {
-        lastUsedAt = date;
-      }
+      datesUsed.add(date);
     }
   }
 
+  const sortedDates = [...datesUsed].sort();
+  const lastUsedAt =
+    sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : null;
+
   return {
     dishId,
-    totalUses,
+    totalUses: datesUsed.size,
     lastUsedAt,
   };
 }
@@ -94,6 +97,10 @@ export async function getDishUsage(
 /**
  * Devuelve los platos usados recientemente en la oferta,
  * ordenados por fecha descendente.
+ *
+ * Cuenta días únicos por plato: si el mismo plato aparece
+ * en varias opciones del mismo día, ese día cuenta una sola
+ * vez.
  *
  * TODO: si el volumen de week_day_options crece, migrar a
  * vista o RPC con agregación en PostgreSQL.
@@ -116,7 +123,8 @@ export async function getRecentDishUsage(
       .eq("option_type", "dish"),
   );
 
-  const byDish = new Map<string, RecentDishUsageItem>();
+  // dishId → Set<date>  (días únicos por plato)
+  const datesByDish = new Map<string, Set<string>>();
 
   for (const row of result ?? []) {
     const dishId = row.dish_versions?.dish_id;
@@ -125,23 +133,30 @@ export async function getRecentDishUsage(
     if (!dishId || !date) continue;
     if (params.sinceDate && date < params.sinceDate) continue;
 
-    const current = byDish.get(dishId);
+    let dates = datesByDish.get(dishId);
 
-    if (current) {
-      current.uses += 1;
-      if (date > current.lastUsedAt) {
-        current.lastUsedAt = date;
-      }
-    } else {
-      byDish.set(dishId, {
-        dishId,
-        uses: 1,
-        lastUsedAt: date,
-      });
+    if (!dates) {
+      dates = new Set<string>();
+      datesByDish.set(dishId, dates);
     }
+
+    dates.add(date);
   }
 
-  return [...byDish.values()]
+  const items: RecentDishUsageItem[] = [];
+
+  for (const [dishId, dates] of datesByDish) {
+    const sorted = [...dates].sort();
+    const lastUsedAt = sorted[sorted.length - 1];
+
+    items.push({
+      dishId,
+      uses: dates.size,
+      lastUsedAt,
+    });
+  }
+
+  return items
     .sort((a, b) => b.lastUsedAt.localeCompare(a.lastUsedAt))
     .slice(0, limit);
 }
