@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import type { ReactNode } from "react";
 import { AdminSectionPage } from "../features/admin/AdminSectionPage";
 import { AdminLoginPage } from "../features/auth/AdminLoginPage";
 import { useAuth } from "../features/auth/AuthProvider";
@@ -41,7 +42,7 @@ function AdminRoute({ path }: { path: AdminPath }) {
     );
   }
 
-  let content: React.ReactNode;
+  let content: ReactNode;
 
   switch (path) {
     case "/admin/clientes":
@@ -55,7 +56,11 @@ function AdminRoute({ path }: { path: AdminPath }) {
 }
 
 export function AppRouter() {
-  const pathname = useSyncExternalStore(subscribeToLocation, getLocation, getServerLocation);
+  const pathname = useSyncExternalStore(
+    subscribeToLocation,
+    getLocation,
+    getServerLocation,
+  );
   const route = resolveRoute(pathname);
 
   switch (route.kind) {
