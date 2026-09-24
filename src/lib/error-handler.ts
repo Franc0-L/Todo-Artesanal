@@ -147,6 +147,16 @@ function mapPostgrestError(error: PostgrestError): AppError {
         },
       );
 
+    case "23P01":
+      return new AppError(
+        "CONFLICT",
+        "El rango de fechas se superpone con otra semana existente.",
+        {
+          cause: error,
+          details: error.details,
+        },
+      );
+
     case "42501":
       return new AppError(
         "FORBIDDEN",
