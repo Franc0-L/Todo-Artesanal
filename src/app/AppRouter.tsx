@@ -3,6 +3,7 @@ import { AdminSectionPage } from "../features/admin/AdminSectionPage";
 import { AdminLoginPage } from "../features/auth/AdminLoginPage";
 import { useAuth } from "../features/auth/AuthProvider";
 import { AdminShell } from "../features/admin/AdminShell";
+import { ClientsPage } from "../features/clientes/ClientsPage";
 import { resolveRoute } from "./routes";
 
 function subscribeToLocation(onChange: () => void) {
@@ -18,7 +19,9 @@ function getServerLocation() {
   return "/";
 }
 
-function AdminRoute({ path }: { path: Extract<ReturnType<typeof resolveRoute>, { kind: "admin" }>['path'] }) {
+type AdminPath = Extract<ReturnType<typeof resolveRoute>, { kind: "admin" }>['path'];
+
+function AdminRoute({ path }: { path: AdminPath }) {
   const { status, error } = useAuth();
 
   if (status === "loading") {
@@ -38,19 +41,21 @@ function AdminRoute({ path }: { path: Extract<ReturnType<typeof resolveRoute>, {
     );
   }
 
-  return (
-    <AdminShell currentPath={path}>
-      <AdminSectionPage path={path} />
-    </AdminShell>
-  );
+  let content: React.ReactNode;
+
+  switch (path) {
+    case "/admin/clientes":
+      content = <ClientsPage />;
+      break;
+    default:
+      content = <AdminSectionPage path={path} />;
+  }
+
+  return <AdminShell currentPath={path}>{content}</AdminShell>;
 }
 
 export function AppRouter() {
-  const pathname = useSyncExternalStore(
-    subscribeToLocation,
-    getLocation,
-    getServerLocation,
-  );
+  const pathname = useSyncExternalStore(subscribeToLocation, getLocation, getServerLocation);
   const route = resolveRoute(pathname);
 
   switch (route.kind) {
