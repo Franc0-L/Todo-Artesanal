@@ -353,11 +353,14 @@ Extensión propuesta y aprobada de las invariantes de §36:
 - `private.is_admin() = security definer, lee auth.uid() contra admin_users`
 - `private.current_client_id() = security definer, lee auth.jwt() ->> 'client_id'`
   - Devuelve NULL si el claim no existe o no es UUID válido (defensiva).
+- `public.is_user_admin(p_user_id) = security definer, RPC público para que
+  la Edge Function verifique admins sin acceder al schema private`
 - `RLS habilitado en las 15 tablas públicas + admin_users`
 - `policies admin = FOR ALL en todas las tablas, con is_admin()`
 - `policies cliente = según checklist (ver abajo)`
 - `cliente NO accede a: client_tokens, week_expected_clients, dishes, menus`
-- `service_role grants defensivos = usage schema + all tables + all functions`
+- `service_role grants defensivos = usage schema + all tables + all functions
+  + usage private + select admin_users`
 - `primer admin = INSERT manual en 04_admin_setup.sql`
 
 ## Checklist de policies de cliente
@@ -403,7 +406,7 @@ Si en el futuro se necesitan filtros, agregar policy sobre `dishes`.
 - `dish_versions: rechazar UPDATE/DELETE` (trigger)
 - `menu_versions: rechazar UPDATE/DELETE` (trigger)
 - `weeks closed: rechazar INSERT/UPDATE/DELETE sobre week_days,
-week_day_options, orders, cancellations de esa semana`
+  week_day_options, orders, cancellations de esa semana`
 
 ---
 
@@ -412,7 +415,7 @@ week_day_options, orders, cancellations de esa semana`
 ## Fase 5A — Migraciones aplicadas
 
 - Proyecto Supabase: `Todo-Artesanal` (linkeado).
-- 7 migraciones aplicadas (en orden):
+- 9 migraciones aplicadas (en orden):
   - `20260923000001_schema.sql`
   - `20260923000002_functions.sql`
   - `20260923000003_triggers.sql`
@@ -420,9 +423,16 @@ week_day_options, orders, cancellations de esa semana`
   - `20260923000005_admin_setup.sql`
   - `20260924000001_menu_rpc.sql`
   - `20260924000002_week_rpc.sql`
+  - `20260924000003_edge_function_grants.sql`
+  - `20260924000004_admin_check_rpc.sql`
 - 15 tablas en `public`.
 - Funciones privadas en `private` (`is_admin`, `current_client_id`).
-- Funciones públicas de dominio: `calculate_order_price`, `activate_week`, `close_week`, `create_menu`, `create_menu_version`, `create_week`, `update_week`.
+- Funciones públicas de dominio:
+  - `calculate_order_price`, `activate_week`, `close_week`
+  - `create_menu`, `create_menu_version`
+  - `create_week`, `update_week`
+  - `is_user_admin` (RPC para Edge Function)
+- Edge Function deployada: `rotate-client-token`.
 - 1 admin creado en `private.admin_users`.
 
 ## Fase 5B — Tipos y helpers
@@ -468,7 +478,7 @@ week_day_options, orders, cancellations de esa semana`
 
 - `clients.service.ts`: listClients, getClient, createClient, updateClient, setClientActive, deleteClient.
 - `client-prices.service.ts`: getClientPrices, setClientPrice, removeClientPrice, listClientProductPrices, setClientProductPrice, removeClientProductPrice.
-- `client-tokens.service.ts`: getActiveTokenStatus, rotateClientToken (llama Edge Function pendiente).
+- `client-tokens.service.ts`: getActiveTokenStatus, rotateClientToken (llama Edge Function rotate-client-token).
 
 **platos/**
 
@@ -500,6 +510,21 @@ week_day_options, orders, cancellations de esa semana`
 
 - `history.service.ts`: listHistoricalWeeks, getClientHistory, getUnansweredClients.
 
+### Edge Functions implementadas
+
+**rotate-client-token/**
+
+- Recibe `{ clientId: uuid }` por POST.
+- Requiere JWT de admin en `Authorization: Bearer <jwt>`.
+- Verifica admin vía RPC público `is_user_admin`.
+- Invalida el token vigente del cliente (`invalidated_at = now()`).
+- Genera token random de 32 bytes (base64url).
+- Persiste SHA-256 del token en `client_tokens.token_hash`.
+- Devuelve `{ token: plaintext, clientId }`.
+- El plaintext se devuelve una única vez, nunca se persiste.
+- Variables de entorno inyectadas por Supabase: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+- Usa `service_role` internamente para operar sobre `client_tokens` (que no tiene policy de cliente).
+
 ### TODOs anotados en el código
 
 - `dishes.service.ts` listDishes: búsqueda por `.in()` puede romper con catálogos grandes. Migrar a vista o RPC.
@@ -508,20 +533,13 @@ week_day_options, orders, cancellations de esa semana`
 - `dish-usage.service.ts`: agregaciones en cliente. Migrar a vista o RPC si crece el volumen.
 - `createDish` sigue usando rollback manual. Convive con el problema conceptual de no-transacción, aunque no lo expone porque `dishes` no tiene trigger inmutable. TODO: migrar a RPC cuando toque refactor.
 - `menus.service.ts` listMenus: búsqueda por `.in()` + agregación de itemCount en cliente. Migrar a vista si crece.
-- `menu-versions.service.ts`: race condition teórica en create_menu_version (ya resuelto parcialmente por el RPC que envuelve todo en una transacción; el UNIQUE evita corrupción).
 - `weeks.service.ts` updateWeek: borra week_day_options existentes (cascade). Documentado; evaluar flag `confirmDeleteOptions` en el futuro.
 - `history.service.ts`: agregados (totalAmount, unanswered, etc.) calculados en cliente. Migrar a vista o RPC si el volumen crece.
 - `orders.service.ts` getOrderTotals: SUM en cliente. Migrar a vista o RPC si crece.
-- `client-tokens.service.ts`: Edge Function `rotate-client-token` pendiente.
 
 ---
 
-# Pendientes — Fase 5 en adelante
-
-## Edge Function
-
-- `rotate-client-token`: valida token, emite JWT con claim `client_id`, invalida token anterior.
-- Es el único pedazo del backend que falta.
+# Pendientes — Fase 6 en adelante
 
 ## Reportes
 
@@ -536,6 +554,13 @@ week_day_options, orders, cancellations de esa semana`
 ## Tests
 
 - Tests de invariantes contra la DB real.
+
+## Documentación
+
+- `docs/arquitectura.md` completo.
+- `docs/servicios.md` completo.
+- `docs/dominio.md`, `docs/modelo-datos.md`, `docs/flujos.md`.
+- README del proyecto.
 
 ---
 
@@ -616,3 +641,20 @@ week_day_options, orders, cancellations de esa semana`
   - solo permite modificar semanas en draft
   - borra week_days actuales (cascade a week_day_options) y recrea
   - ADVERTENCIA documentada: si había opciones cargadas, se pierden
+
+## 20260924000003_edge_function_grants.sql
+
+- `grant usage on schema private to service_role`
+- `grant select on table private.admin_users to service_role`
+- Necesario porque la Edge Function necesita verificar admins
+  (aunque terminó usando el RPC público `is_user_admin`).
+
+## 20260924000004_admin_check_rpc.sql
+
+- `is_user_admin(p_user_id uuid) → boolean`
+  - security definer + set search_path = public, private
+  - consulta private.admin_users
+  - revocado de public y authenticated
+  - grant execute a service_role
+  - necesario para que la Edge Function verifique admins sin acceder
+    al schema private vía PostgREST (que solo expone public)
