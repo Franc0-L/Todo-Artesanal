@@ -1,4 +1,7 @@
 import { useSyncExternalStore } from "react";
+import { AdminLoginPage } from "../features/auth/AdminLoginPage";
+import { useAuth } from "../features/auth/AuthProvider";
+import { AdminShell } from "../features/admin/AdminShell";
 import { resolveRoute } from "./routes";
 
 function subscribeToLocation(onChange: () => void) {
@@ -14,6 +17,38 @@ function getServerLocation() {
   return "/";
 }
 
+function AdminRoute() {
+  const { status, error } = useAuth();
+
+  if (status === "loading") {
+    return <main aria-busy="true">Cargando sesión…</main>;
+  }
+
+  if (status === "signed-out") {
+    return <AdminLoginPage />;
+  }
+
+  if (status === "forbidden" || status === "error") {
+    return (
+      <main>
+        <h1>No se puede acceder al área administrativa</h1>
+        <p role="alert">
+          {error ?? "Ocurrió un error al verificar la sesión."}
+        </p>
+      </main>
+    );
+  }
+
+  return (
+    <AdminShell>
+      <section>
+        <h1>Panel administrativo</h1>
+        <p>La sesión administrativa está activa.</p>
+      </section>
+    </AdminShell>
+  );
+}
+
 export function AppRouter() {
   const pathname = useSyncExternalStore(
     subscribeToLocation,
@@ -24,7 +59,7 @@ export function AppRouter() {
 
   switch (route.kind) {
     case "admin":
-      return <div>Área administrativa</div>;
+      return <AdminRoute />;
     case "client-menu":
       return <div>Menú del cliente</div>;
     case "home":
