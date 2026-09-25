@@ -1,212 +1,284 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { MenuDrawer } from "./MenuDrawer";
 import { listMenus } from "./services/menus.service";
-import type { Menu, MenuWithCurrentVersion } from "./types/menu";
+import type { Menu } from "./types/menu";
 import type { MenuListItem } from "./types/menu-list";
 import "./menus.css";
+import "./menu-details.css";
+
+const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 350;
+type StatusFilter = "all" | "active" | "inactive";
 
 export function MenusPage() {
   const [items, setItems] = useState<MenuListItem[]>([]);
-  const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState<
-    "all" | "active" | "inactive"
-  >("active");
-  const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null);
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [drawer, setDrawer] = useState<{
-    mode: "create" | "edit";
-    id: string | null;
-  } | null>(null);
-  const requestId = useRef(0);
-  const pageSize = 20;
 
-  const load = useCallback(async () => {
-    const request = ++requestId.current;
+  const searchDebounceRef = useRef<number | null>(null);
+
+  const loadMenus = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const result = await listMenus({
-        page,
-        pageSize,
         search: search || undefined,
-        active: activeFilter === "all" ? undefined : activeFilter === "active",
+        active: statusFilter === "all" ? undefined : statusFilter === "active",
+        page,
+        pageSize: PAGE_SIZE,
       });
-      if (request !== requestId.current) return;
       setItems(result.items);
       setTotal(result.total);
-    } catch (e: unknown) {
-      if (request === requestId.current)
-        setError(
-          e instanceof Error ? e.message : "No se pudieron cargar los menús.",
-        );
+    } catch (loadError) {
+      setItems([]);
+      setTotal(0);
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "No se pudieron cargar los menús.",
+      );
     } finally {
-      if (request === requestId.current) setLoading(false);
+      setLoading(false);
     }
-  }, [activeFilter, page, search]);
+  }, [page, search, statusFilter]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const handleCloseDrawer = useCallback(() => {
+    setSelectedMenuId(null);
+    setCreateDrawerOpen(false);
+  }, []);
 
-  function updateMenu(menu: Menu) {
+  const handleMenuCreated = useCallback(
+    (created: Menu) => {
+      setCreateDrawerOpen(false);
+      setSelectedMenuId(created.id);
+      setPage(1);
+      void loadMenus();
+    },
+    [loadMenus],
+  );
+
+  const handleMenuSaved = useCallback((updated: Menu) => {
     setItems((current) =>
       current.map((item) =>
-        item.id === menu.id ? { ...item, active: menu.active } : item,
+        item.id === updated.id ? { ...item, active: updated.active } : item,
       ),
     );
-  }
-  function created(menu: MenuWithCurrentVersion) {
-    const newItem: MenuListItem = {
-      id: menu.id,
-      name: menu.currentVersion?.name ?? null,
-      itemCount: menu.currentVersion?.items.length ?? 0,
-      active: menu.active,
-      createdAt: menu.createdAt,
+  }, []);
+
+  // Se dispara al crear una nueva versión desde el drawer: nombre y
+  // cantidad de ítems del listado dependen de la versión, no de la
+  // identidad del menú.
+  const handleVersionCreated = useCallback(
+    (menuId: string, name: string, itemCount: number) => {
+      setItems((current) =>
+        current.map((item) =>
+          item.id === menuId ? { ...item, name, itemCount } : item,
+        ),
+      );
+    },
+    [],
+  );
+
+  useEffect(() => {
+    void loadMenus();
+  }, [loadMenus]);
+
+  useEffect(() => {
+    if (searchDebounceRef.current !== null) {
+      window.clearTimeout(searchDebounceRef.current);
+    }
+
+    searchDebounceRef.current = window.setTimeout(() => {
+      setPage(1);
+      setSearch(searchInput.trim());
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      if (searchDebounceRef.current !== null) {
+        window.clearTimeout(searchDebounceRef.current);
+      }
     };
-    setItems((current) => [newItem, ...current].slice(0, pageSize));
-    setTotal((totalCount) => totalCount + 1);
+  }, [searchInput]);
+
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (searchDebounceRef.current !== null) {
+      window.clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = null;
+    }
+
     setPage(1);
-    setDrawer({ mode: "edit", id: menu.id });
+    setSearch(searchInput.trim());
   }
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  function handleStatusChange(value: StatusFilter) {
+    setPage(1);
+    setStatusFilter(value);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <main className="menus-page">
+    <section className="menus-page" aria-labelledby="menus-title">
       <header className="menus-page__header">
-        <div>
-          <p className="menus-page__eyebrow">Catálogo</p>
-          <h1>Menús</h1>
-          <p>Composiciones versionadas de platos para las ofertas semanales.</p>
+        <div className="menus-page__heading-row">
+          <div>
+            <p className="menus-page__eyebrow">Administración</p>
+            <h1 id="menus-title">Menús</h1>
+            <p className="menus-page__description">
+              Combiná platos en menús: un plato principal y, opcionalmente, una
+              o más guarniciones.
+            </p>
+          </div>
+          <button
+            className="menus-primary-action"
+            type="button"
+            onClick={() => {
+              setSelectedMenuId(null);
+              setCreateDrawerOpen(true);
+            }}
+          >
+            Nuevo menú
+          </button>
         </div>
-        <button
-          className="menus-page__primary"
-          type="button"
-          onClick={() => setDrawer({ mode: "create", id: null })}
-        >
-          Nuevo menú
-        </button>
       </header>
-      <section className="menus-page__toolbar" aria-label="Filtros de menús">
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          placeholder="Buscar por nombre…"
-          aria-label="Buscar menús"
-        />
-        <select
-          value={activeFilter}
-          onChange={(e) => {
-            setActiveFilter(e.target.value as typeof activeFilter);
-            setPage(1);
-          }}
-          aria-label="Filtrar por estado"
-        >
-          <option value="active">Activos</option>
-          <option value="inactive">Inactivos</option>
-          <option value="all">Todos</option>
-        </select>
-      </section>
+
+      <div className="menus-toolbar">
+        <form className="menus-search" onSubmit={handleSearchSubmit}>
+          <label htmlFor="menu-search">Buscar</label>
+          <div className="menus-search__controls">
+            <input
+              id="menu-search"
+              name="search"
+              type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Nombre del menú"
+            />
+            <button type="submit">Buscar</button>
+          </div>
+        </form>
+
+        <div className="menus-filter">
+          <label htmlFor="menu-status">Estado</label>
+          <select
+            id="menu-status"
+            value={statusFilter}
+            onChange={(event) =>
+              handleStatusChange(event.target.value as StatusFilter)
+            }
+          >
+            <option value="all">Todos</option>
+            <option value="active">Activos</option>
+            <option value="inactive">Inactivos</option>
+          </select>
+        </div>
+      </div>
+
       {error && (
         <div className="menus-feedback menus-feedback--error" role="alert">
-          <span>{error}</span>
-          <button type="button" onClick={() => void load()}>
+          <p>{error}</p>
+          <button type="button" onClick={() => void loadMenus()}>
             Reintentar
           </button>
         </div>
       )}
-      {loading ? (
-        <p className="menus-feedback">Cargando menús…</p>
-      ) : items.length === 0 ? (
-        <section className="menus-empty">
-          <h2>{search ? "Sin resultados" : "No hay menús"}</h2>
-          <p>
-            {search
-              ? "Probá con otra búsqueda."
-              : "Creá el primer menú para empezar a componer ofertas."}
-          </p>
-          {!search && (
-            <button
-              className="menus-page__primary"
-              type="button"
-              onClick={() => setDrawer({ mode: "create", id: null })}
-            >
-              Crear menú
-            </button>
-          )}
-        </section>
-      ) : (
-        <>
-          <div className="menus-table-wrap">
-            <table className="menus-table">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Composición</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.id}>
-                    <td colSpan={3}>
-                      <button
-                        className="menus-row"
-                        type="button"
-                        onClick={() => setDrawer({ mode: "edit", id: item.id })}
-                      >
-                        <span className="menus-row__name">
-                          {item.name ?? "Sin nombre"}
-                        </span>
-                        <span>
-                          {item.itemCount} ítem{item.itemCount === 1 ? "" : "s"}
-                        </span>
-                        <span
-                          className={`menus-status menus-status--${item.active ? "active" : "inactive"}`}
-                        >
-                          {item.active ? "Activo" : "Inactivo"}
-                        </span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+      <div className="menus-list-wrapper" aria-busy={loading}>
+        {loading ? (
+          <p className="menus-feedback">Cargando menús…</p>
+        ) : items.length === 0 ? (
+          <div className="menus-feedback">
+            <h2>No hay menús para mostrar</h2>
+            <p>
+              {search || statusFilter !== "all"
+                ? "Probá cambiar la búsqueda o el filtro."
+                : "Todavía no hay menús registrados."}
+            </p>
           </div>
-          <nav className="menus-pagination" aria-label="Paginación">
+        ) : (
+          <>
+            <div className="menus-list-header" aria-hidden="true">
+              <span>Nombre</span>
+              <span>Ítems</span>
+              <span>Estado</span>
+            </div>
+            <ul className="menus-list" aria-label="Listado de menús">
+              {items.map((menu) => (
+                <li key={menu.id}>
+                  <button
+                    className="menu-row"
+                    type="button"
+                    onClick={() => setSelectedMenuId(menu.id)}
+                    aria-label={`Abrir ficha de ${menu.name ?? "menú sin versión"}`}
+                  >
+                    <strong>{menu.name ?? "Sin nombre"}</strong>
+                    <span>
+                      {menu.itemCount} plato{menu.itemCount === 1 ? "" : "s"}
+                    </span>
+                    <span>
+                      <span
+                        className={`menus-status menus-status--${
+                          menu.active ? "active" : "inactive"
+                        }`}
+                      >
+                        {menu.active ? "Activo" : "Inactivo"}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+
+      {!loading && total > 0 && (
+        <nav className="menus-pagination" aria-label="Paginación de menús">
+          <span>
+            Página {page} de {totalPages} · {total} menú{total === 1 ? "" : "s"}
+          </span>
+          <div>
             <button
               type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
+              disabled={page === 1}
+              onClick={() => setPage((current) => current - 1)}
             >
               Anterior
             </button>
-            <span>
-              Página {page} de {totalPages}
-            </span>
             <button
               type="button"
               disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => setPage((current) => current + 1)}
             >
               Siguiente
             </button>
-          </nav>
-        </>
+          </div>
+        </nav>
       )}
+
       <MenuDrawer
-        mode={drawer?.mode ?? "edit"}
-        menuId={drawer?.id ?? null}
-        onClose={() => setDrawer(null)}
-        onCreated={created}
-        onSaved={updateMenu}
+        mode={createDrawerOpen ? "create" : "edit"}
+        menuId={createDrawerOpen ? null : selectedMenuId}
+        onClose={handleCloseDrawer}
+        onCreated={handleMenuCreated}
+        onSaved={handleMenuSaved}
+        onVersionCreated={handleVersionCreated}
       />
-    </main>
+    </section>
   );
 }

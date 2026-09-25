@@ -5,40 +5,58 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { useConfirm } from "../../components/ui/useConfirm";
-import { formatCurrency, formatDate } from "../../lib/formatters";
-import { listDishes } from "../platos/services/dishes.service";
-import { listDishVersions } from "../platos/services/dish-versions.service";
 import { createMenu, getMenu, setMenuActive } from "./services/menus.service";
 import {
   createMenuVersion,
   listMenuVersions,
 } from "./services/menu-versions.service";
-import type { Menu, MenuWithCurrentVersion } from "./types/menu";
-import type { MenuVersionSummary } from "./types/menu-version";
-import type { MenuVersionItem } from "./types/menu-version-item";
+import { listDishes } from "../platos/services/dishes.service";
+import { listDishVersions } from "../platos/services/dish-versions.service";
+import { formatCurrency, formatDate } from "../../lib/formatters";
+import { useConfirm } from "../../components/ui/useConfirm";
 import type { MenuItemRole } from "../../types/domain";
+import type {
+  CreateMenuInput,
+  Menu,
+  MenuWithCurrentVersion,
+} from "./types/menu";
+import type {
+  CreateMenuVersionInput,
+  MenuVersionSummary,
+} from "./types/menu-version";
+import type { DishListItem } from "../platos/types/dish-list";
 
-interface Props {
+interface MenuDrawerProps {
   mode: "create" | "edit";
   menuId: string | null;
   onClose: () => void;
-  onCreated: (menu: MenuWithCurrentVersion) => void;
+  onCreated: (menu: Menu) => void;
   onSaved: (menu: Menu) => void;
+  onVersionCreated: (menuId: string, name: string, itemCount: number) => void;
 }
-interface FormState {
+
+interface VersionFormState {
   name: string;
   price: string;
-  items: MenuVersionItem[];
 }
-interface DishOption {
-  id: string;
+
+interface ComposerItem {
+  dishVersionId: string;
+  dishId: string;
   name: string;
-  versionId: string;
-  versionNumber: number;
   price: number;
+  role: MenuItemRole;
 }
-const EMPTY: FormState = { name: "", price: "", items: [] };
+
+const EMPTY_VERSION_FORM: VersionFormState = { name: "", price: "" };
+const DISH_SEARCH_DEBOUNCE_MS = 350;
+
+function serializeComposer(items: ComposerItem[]): string {
+  return items
+    .map((item) => `${item.role}:${item.dishVersionId}`)
+    .sort()
+    .join("|");
+}
 
 export function MenuDrawer({
   mode,
@@ -46,224 +64,449 @@ export function MenuDrawer({
   onClose,
   onCreated,
   onSaved,
-}: Props) {
-  const closeRef = useRef<HTMLButtonElement>(null);
+  onVersionCreated,
+}: MenuDrawerProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [menu, setMenu] = useState<MenuWithCurrentVersion | null>(null);
   const [versions, setVersions] = useState<MenuVersionSummary[]>([]);
-  const [form, setForm] = useState<FormState>(EMPTY);
-  const [options, setOptions] = useState<DishOption[]>([]);
-  const [search, setSearch] = useState("");
+
+  const [versionForm, setVersionForm] =
+    useState<VersionFormState>(EMPTY_VERSION_FORM);
+  const [composerItems, setComposerItems] = useState<ComposerItem[]>([]);
+  const [baselineVersionForm, setBaselineVersionForm] =
+    useState<VersionFormState>(EMPTY_VERSION_FORM);
+  const [baselineComposerItems, setBaselineComposerItems] = useState<
+    ComposerItem[]
+  >([]);
+
+  const [dishQuery, setDishQuery] = useState("");
+  const [dishResults, setDishResults] = useState<DishListItem[]>([]);
+  const [dishSearchLoading, setDishSearchLoading] = useState(false);
+  const [dishSearchError, setDishSearchError] = useState<string | null>(null);
+  const [resolvingDishId, setResolvingDishId] = useState<string | null>(null);
+  const [composerError, setComposerError] = useState<string | null>(null);
+  const dishSearchDebounceRef = useRef<number | null>(null);
+
   const [loading, setLoading] = useState(false);
-  const [optionsLoading, setOptionsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [versionSaving, setVersionSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [versionError, setVersionError] = useState<string | null>(null);
+  const [versionMessage, setVersionMessage] = useState<string | null>(null);
+
   const { confirm, confirmDialog } = useConfirm();
-  const createMode = mode === "create";
 
-  const dirty = createMode
-    ? Boolean(form.name.trim() || form.price.trim() || form.items.length)
-    : !!menu?.currentVersion &&
-      (form.name !== menu.currentVersion.name ||
-        form.price !== String(menu.currentVersion.price) ||
-        JSON.stringify(form.items.map((i) => [i.dishVersion.id, i.role])) !==
-          JSON.stringify(
-            menu.currentVersion.items.map((i) => [i.dishVersion.id, i.role]),
-          ));
+  const isCreateMode = mode === "create";
+  const currentVersion = menu?.currentVersion ?? null;
+  const mainItem = composerItems.find((item) => item.role === "main") ?? null;
+  const sideItems = composerItems.filter((item) => item.role === "side");
 
-  const reset = useCallback(() => {
+  const dirty = isCreateMode
+    ? versionForm.name.trim() !== "" ||
+      versionForm.price.trim() !== "" ||
+      composerItems.length > 0
+    : versionForm.name !== baselineVersionForm.name ||
+      versionForm.price !== baselineVersionForm.price ||
+      serializeComposer(composerItems) !==
+        serializeComposer(baselineComposerItems);
+
+  function resetState() {
     setMenu(null);
     setVersions([]);
-    setForm(EMPTY);
-    setOptions([]);
-    setSearch("");
+    setVersionForm(EMPTY_VERSION_FORM);
+    setComposerItems([]);
+    setBaselineVersionForm(EMPTY_VERSION_FORM);
+    setBaselineComposerItems([]);
+    setDishQuery("");
+    setDishResults([]);
+    setDishSearchError(null);
+    setComposerError(null);
     setError(null);
-    setMessage(null);
-  }, []);
+    setVersionError(null);
+    setVersionMessage(null);
+  }
 
   useEffect(() => {
-    if (createMode) {
-      reset();
+    if (isCreateMode) {
+      resetState();
+      setLoading(false);
       return;
     }
+
     if (!menuId) {
-      reset();
+      resetState();
+      setLoading(false);
       return;
     }
+
     let cancelled = false;
     setLoading(true);
-    reset();
+    resetState();
+
     void Promise.all([getMenu(menuId), listMenuVersions(menuId)])
-      .then(([m, v]) => {
+      .then(([menuResult, versionsResult]) => {
         if (cancelled) return;
-        setMenu(m);
-        setForm(
-          m.currentVersion
-            ? {
-                name: m.currentVersion.name,
-                price: String(m.currentVersion.price),
-                items: m.currentVersion.items,
-              }
-            : EMPTY,
-        );
-        setVersions(v);
+
+        setMenu(menuResult);
+        setVersions(versionsResult);
+
+        const initialComposer: ComposerItem[] = (
+          menuResult.currentVersion?.items ?? []
+        ).map((item) => ({
+          dishVersionId: item.dishVersion.id,
+          dishId: item.dishVersion.dishId,
+          name: item.dishVersion.name,
+          price: item.dishVersion.price,
+          role: item.role,
+        }));
+
+        const initialForm: VersionFormState = {
+          name: menuResult.currentVersion?.name ?? "",
+          price:
+            menuResult.currentVersion?.price !== undefined
+              ? String(menuResult.currentVersion.price)
+              : "",
+        };
+
+        setComposerItems(initialComposer);
+        setBaselineComposerItems(initialComposer);
+        setVersionForm(initialForm);
+        setBaselineVersionForm(initialForm);
       })
-      .catch((e: unknown) => {
-        if (!cancelled)
+      .catch((loadError: unknown) => {
+        if (!cancelled) {
           setError(
-            e instanceof Error ? e.message : "No se pudo cargar el menú.",
+            loadError instanceof Error
+              ? loadError.message
+              : "No se pudo cargar la ficha del menú.",
           );
+        }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       });
+
     return () => {
       cancelled = true;
     };
-  }, [createMode, menuId, reset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuId, isCreateMode]);
 
   useEffect(() => {
-    if (!createMode && !menuId) return;
-    const old = document.body.style.overflow;
+    if (!isCreateMode && !menuId) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    closeRef.current?.focus();
+    closeButtonRef.current?.focus();
+
     return () => {
-      document.body.style.overflow = old;
+      document.body.style.overflow = previousOverflow;
     };
-  }, [createMode, menuId]);
+  }, [menuId, isCreateMode]);
 
   const requestClose = useCallback(async () => {
-    if (
-      dirty &&
-      !(await confirm({
+    if (dirty) {
+      const proceed = await confirm({
         title: "Cambios sin guardar",
-        message: "Hay cambios sin guardar. Si cerrás ahora se perderán.",
+        message:
+          "Hay cambios sin guardar en esta ficha. Si cerrás ahora, se van a perder.",
         confirmLabel: "Cerrar sin guardar",
         cancelLabel: "Seguir editando",
         tone: "danger",
-      }))
-    )
-      return;
+      });
+
+      if (!proceed) {
+        return;
+      }
+    }
+
     onClose();
   }, [confirm, dirty, onClose]);
 
   useEffect(() => {
-    if (!createMode && !menuId) return;
-    const fn = (e: KeyboardEvent) => {
-      if (e.key === "Escape") void requestClose();
-    };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [createMode, menuId, requestClose]);
+    if (!isCreateMode && !menuId) {
+      return;
+    }
 
-  useEffect(() => {
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      setOptionsLoading(true);
-      void listDishes({
-        search: search || undefined,
-        active: true,
-        page: 1,
-        pageSize: 50,
-      })
-        .then(async (result) => {
-          const resolved = await Promise.all(
-            result.items
-              .filter((d) => d.name)
-              .map(async (d) => {
-                const v = (await listDishVersions(d.id))[0];
-                return v
-                  ? {
-                      id: d.id,
-                      name: d.name as string,
-                      versionId: v.id,
-                      versionNumber: v.versionNumber,
-                      price: v.price,
-                    }
-                  : null;
-              }),
-          );
-          if (!cancelled)
-            setOptions(resolved.filter((x): x is DishOption => !!x));
-        })
-        .catch(() => {
-          if (!cancelled) setOptions([]);
-        })
-        .finally(() => {
-          if (!cancelled) setOptionsLoading(false);
-        });
-    }, 250);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [search]);
-
-  function add(option: DishOption, role: MenuItemRole) {
-    if (form.items.some((i) => i.dishVersion.id === option.versionId)) return;
-    if (role === "main" && form.items.some((i) => i.role === "main")) return;
-    const item: MenuVersionItem = {
-      id: `draft-${option.versionId}`,
-      menuVersionId: menu?.currentVersion?.id ?? "draft",
-      role,
-      createdAt: new Date().toISOString(),
-      dishVersion: {
-        id: option.versionId,
-        dishId: option.id,
-        versionNumber: option.versionNumber,
-        name: option.name,
-        price: option.price,
-      },
-    };
-    setForm((f) => ({ ...f, items: [...f.items, item] }));
-  }
-  function remove(id: string) {
-    setForm((f) => ({
-      ...f,
-      items: f.items.filter((i) => i.dishVersion.id !== id),
-    }));
-  }
-  function changeRole(id: string, value: MenuItemRole) {
-    setForm((f) => ({
-      ...f,
-      items: f.items.map((i) =>
-        i.dishVersion.id === id ? { ...i, role: value } : i,
-      ),
-    }));
-  }
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (saving) return;
-    setSaving(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const price = Number(form.price);
-      const main = form.items.filter((i) => i.role === "main").length;
-      if (!form.name.trim())
-        throw new Error("El nombre del menú es obligatorio.");
-      if (!Number.isFinite(price) || price < 0)
-        throw new Error("El precio debe ser un número mayor o igual a 0.");
-      if (main !== 1)
-        throw new Error("El menú debe tener exactamente un plato principal.");
-      const items = form.items.map((i) => ({
-        dishVersionId: i.dishVersion.id,
-        role: i.role,
-      }));
-      if (createMode) {
-        onCreated(await createMenu({ name: form.name, price, items }));
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
         return;
       }
-      if (!menu) return;
-      const created = await createMenuVersion(menu.id, {
-        name: form.name,
-        price,
-        items,
+
+      void requestClose();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [menuId, isCreateMode, requestClose]);
+
+  // Búsqueda en vivo de platos para armar la composición. Solo busca
+  // platos activos y solo dispara con texto cargado (no trae todo el
+  // catálogo de entrada).
+  useEffect(() => {
+    if (dishSearchDebounceRef.current !== null) {
+      window.clearTimeout(dishSearchDebounceRef.current);
+    }
+
+    const trimmed = dishQuery.trim();
+
+    if (!trimmed) {
+      setDishResults([]);
+      setDishSearchLoading(false);
+      setDishSearchError(null);
+      return;
+    }
+
+    dishSearchDebounceRef.current = window.setTimeout(() => {
+      setDishSearchLoading(true);
+      setDishSearchError(null);
+
+      void listDishes({ search: trimmed, active: true, pageSize: 8 })
+        .then((result) => setDishResults(result.items))
+        .catch((searchError: unknown) => {
+          setDishResults([]);
+          setDishSearchError(
+            searchError instanceof Error
+              ? searchError.message
+              : "No se pudo buscar platos.",
+          );
+        })
+        .finally(() => setDishSearchLoading(false));
+    }, DISH_SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      if (dishSearchDebounceRef.current !== null) {
+        window.clearTimeout(dishSearchDebounceRef.current);
+      }
+    };
+  }, [dishQuery]);
+
+  function updateVersionField<K extends keyof VersionFormState>(
+    field: K,
+    value: VersionFormState[K],
+  ) {
+    setVersionForm((current) => ({ ...current, [field]: value }));
+  }
+
+  // Un plato en el listado ya trae su nombre (resuelto por el servicio a
+  // partir de la última versión), pero para componer el menú necesitamos
+  // el id de esa versión, que no viaja en DishListItem. Se resuelve acá,
+  // en el momento de agregarlo.
+  async function handleAddDish(dish: DishListItem, role: MenuItemRole) {
+    setComposerError(null);
+    setResolvingDishId(dish.id);
+
+    try {
+      const dishVersions = await listDishVersions(dish.id);
+      const latest = dishVersions[0];
+
+      if (!latest) {
+        setComposerError(
+          `${dish.name ?? "El plato"} no tiene versiones cargadas.`,
+        );
+        return;
+      }
+
+      setComposerItems((current) => {
+        const alreadyPresent = current.some(
+          (item) => item.dishVersionId === latest.id,
+        );
+
+        if (alreadyPresent) {
+          setComposerError("Ese plato ya está en el menú.");
+          return current;
+        }
+
+        const base =
+          role === "main"
+            ? current.filter((item) => item.role !== "main")
+            : current;
+
+        return [
+          ...base,
+          {
+            dishVersionId: latest.id,
+            dishId: dish.id,
+            name: latest.name,
+            price: latest.price,
+            role,
+          },
+        ];
       });
-      const updated = { ...menu, currentVersion: created };
-      setMenu(updated);
-      setVersions((v) => [
+    } catch (addError: unknown) {
+      setComposerError(
+        addError instanceof Error
+          ? addError.message
+          : "No se pudo agregar el plato.",
+      );
+    } finally {
+      setResolvingDishId(null);
+    }
+  }
+
+  function handleRemoveComposerItem(dishVersionId: string) {
+    setComposerItems((current) =>
+      current.filter((item) => item.dishVersionId !== dishVersionId),
+    );
+  }
+
+  function validateComposer(): string | null {
+    const mainCount = composerItems.filter(
+      (item) => item.role === "main",
+    ).length;
+
+    if (mainCount !== 1) {
+      return "El menú debe tener exactamente un plato principal.";
+    }
+
+    return null;
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (saving) {
+      return;
+    }
+
+    setError(null);
+
+    const trimmedName = versionForm.name.trim();
+    const priceValue = Number(versionForm.price);
+
+    if (!trimmedName) {
+      setError("El nombre es obligatorio.");
+      return;
+    }
+
+    if (!Number.isFinite(priceValue) || priceValue < 0) {
+      setError("El precio debe ser un número mayor o igual a 0.");
+      return;
+    }
+
+    const composerValidationError = validateComposer();
+
+    if (composerValidationError) {
+      setError(composerValidationError);
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const input: CreateMenuInput = {
+        name: trimmedName,
+        price: priceValue,
+        items: composerItems.map((item) => ({
+          dishVersionId: item.dishVersionId,
+          role: item.role,
+        })),
+      };
+
+      const created = await createMenu(input);
+      onCreated(created);
+    } catch (saveError: unknown) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "No se pudo crear el menú.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleActiveToggle() {
+    if (!menu || statusSaving) {
+      return;
+    }
+
+    const nextActive = !menu.active;
+
+    const proceed = await confirm({
+      title: nextActive ? "Activar menú" : "Desactivar menú",
+      message: nextActive
+        ? "¿Activar este menú? Volverá a estar disponible para incluir en la oferta."
+        : "¿Desactivar este menú? Su historial se conservará y dejará de estar disponible para nuevas semanas.",
+      confirmLabel: nextActive ? "Activar" : "Desactivar",
+      tone: nextActive ? "default" : "danger",
+    });
+
+    if (!proceed) {
+      return;
+    }
+
+    setStatusSaving(true);
+    setError(null);
+
+    try {
+      const updated = await setMenuActive(menu.id, nextActive);
+      setMenu((current) =>
+        current ? { ...current, active: updated.active } : current,
+      );
+      onSaved(updated);
+    } catch (statusError: unknown) {
+      setError(
+        statusError instanceof Error
+          ? statusError.message
+          : "No se pudo actualizar el estado del menú.",
+      );
+    } finally {
+      setStatusSaving(false);
+    }
+  }
+
+  async function handleCreateVersion() {
+    if (!menu || versionSaving) {
+      return;
+    }
+
+    setVersionError(null);
+    setVersionMessage(null);
+
+    const trimmedName = versionForm.name.trim();
+    const priceValue = Number(versionForm.price);
+
+    if (!trimmedName) {
+      setVersionError("El nombre es obligatorio.");
+      return;
+    }
+
+    if (!Number.isFinite(priceValue) || priceValue < 0) {
+      setVersionError("El precio debe ser un número mayor o igual a 0.");
+      return;
+    }
+
+    const composerValidationError = validateComposer();
+
+    if (composerValidationError) {
+      setVersionError(composerValidationError);
+      return;
+    }
+
+    setVersionSaving(true);
+
+    try {
+      const input: CreateMenuVersionInput = {
+        name: trimmedName,
+        price: priceValue,
+        items: composerItems.map((item) => ({
+          dishVersionId: item.dishVersionId,
+          role: item.role,
+        })),
+      };
+
+      const created = await createMenuVersion(menu.id, input);
+
+      setMenu((current) =>
+        current ? { ...current, currentVersion: created } : current,
+      );
+      setVersions((current) => [
         {
           id: created.id,
           menuId: created.menuId,
@@ -272,276 +515,400 @@ export function MenuDrawer({
           price: created.price,
           createdAt: created.createdAt,
         },
-        ...v,
+        ...current,
       ]);
-      setForm({
+
+      const nextForm: VersionFormState = {
         name: created.name,
         price: String(created.price),
-        items: created.items,
-      });
-      setMessage(`Versión ${created.versionNumber} creada.`);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "No se pudo guardar el menú.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function toggleActive() {
-    if (!menu) return;
-    const active = !menu.active;
-    const ok = await confirm({
-      title: active ? "Activar menú" : "Desactivar menú",
-      message: active
-        ? "¿Activar este menú?"
-        : "¿Desactivar este menú? Su historial se conservará.",
-      confirmLabel: active ? "Activar" : "Desactivar",
-      tone: active ? "default" : "danger",
-    });
-    if (!ok) return;
-    try {
-      const updated = await setMenuActive(menu.id, active);
-      setMenu((m) => (m ? { ...m, ...updated } : m));
-      onSaved(updated);
-      setMessage(active ? "Menú activado." : "Menú desactivado.");
-    } catch (e: unknown) {
-      setError(
-        e instanceof Error ? e.message : "No se pudo actualizar el estado.",
+      };
+      setVersionForm(nextForm);
+      setBaselineVersionForm(nextForm);
+      setBaselineComposerItems(composerItems);
+      setVersionMessage(`Versión ${created.versionNumber} creada.`);
+      onVersionCreated(menu.id, created.name, created.items.length);
+    } catch (versionCreateError: unknown) {
+      setVersionError(
+        versionCreateError instanceof Error
+          ? versionCreateError.message
+          : "No se pudo crear la nueva versión.",
       );
+    } finally {
+      setVersionSaving(false);
     }
   }
 
-  if (!createMode && !menuId) return null;
+  const open = isCreateMode || menuId !== null;
+
+  if (!open) {
+    return null;
+  }
+
+  const composerSection = (
+    <>
+      <div className="dish-form__fields">
+        <label>
+          Nombre
+          <input
+            type="text"
+            value={versionForm.name}
+            onChange={(event) => updateVersionField("name", event.target.value)}
+            required={isCreateMode}
+            autoFocus={isCreateMode}
+          />
+        </label>
+        <label>
+          Precio
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={versionForm.price}
+            onChange={(event) =>
+              updateVersionField("price", event.target.value)
+            }
+            required={isCreateMode}
+          />
+        </label>
+      </div>
+
+      <div className="menu-composer">
+        <label htmlFor="menu-dish-search">Agregar plato</label>
+        <input
+          id="menu-dish-search"
+          type="search"
+          value={dishQuery}
+          onChange={(event) => setDishQuery(event.target.value)}
+          placeholder="Buscar plato activo por nombre"
+        />
+
+        {dishSearchLoading && <p className="menu-composer__hint">Buscando…</p>}
+        {!dishSearchLoading && dishSearchError && (
+          <p className="menu-composer__hint menu-composer__hint--error">
+            {dishSearchError}
+          </p>
+        )}
+        {!dishSearchLoading &&
+          !dishSearchError &&
+          dishQuery.trim() !== "" &&
+          dishResults.length === 0 && (
+            <p className="menu-composer__hint">Sin resultados.</p>
+          )}
+
+        {dishResults.length > 0 && (
+          <ul className="menu-composer__results">
+            {dishResults.map((dish) => (
+              <li key={dish.id}>
+                <span>{dish.name ?? "Sin nombre"}</span>
+                <div className="menu-composer__results-actions">
+                  <button
+                    type="button"
+                    onClick={() => void handleAddDish(dish, "main")}
+                    disabled={resolvingDishId === dish.id}
+                  >
+                    Principal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleAddDish(dish, "side")}
+                    disabled={resolvingDishId === dish.id}
+                  >
+                    Guarnición
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {composerError && (
+          <div
+            className="dish-link-feedback dish-link-feedback--error"
+            role="alert"
+          >
+            {composerError}
+          </div>
+        )}
+
+        <div className="menu-composer__composition">
+          <h4>Composición</h4>
+
+          {mainItem ? (
+            <div className="menu-composer__item menu-composer__item--main">
+              <span className="menu-composer__role-badge">Principal</span>
+              <span className="menu-composer__item-name">{mainItem.name}</span>
+              <span>{formatCurrency(mainItem.price)}</span>
+              <button
+                type="button"
+                onClick={() => handleRemoveComposerItem(mainItem.dishVersionId)}
+                aria-label={`Quitar ${mainItem.name}`}
+              >
+                ×
+              </button>
+            </div>
+          ) : (
+            <p className="menu-composer__empty">
+              Todavía no hay plato principal.
+            </p>
+          )}
+
+          {sideItems.length > 0 && (
+            <ul className="menu-composer__sides">
+              {sideItems.map((item) => (
+                <li key={item.dishVersionId} className="menu-composer__item">
+                  <span className="menu-composer__role-badge menu-composer__role-badge--side">
+                    Guarnición
+                  </span>
+                  <span className="menu-composer__item-name">{item.name}</span>
+                  <span>{formatCurrency(item.price)}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveComposerItem(item.dishVersionId)}
+                    aria-label={`Quitar ${item.name}`}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <>
       <div
-        className="menu-drawer__backdrop"
+        className="dish-drawer__backdrop"
         onMouseDown={() => void requestClose()}
       >
         <aside
-          className="menu-drawer"
+          className="dish-drawer"
           role="dialog"
           aria-modal="true"
           aria-labelledby="menu-drawer-title"
-          onMouseDown={(e) => e.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
         >
-          <header className="menu-drawer__header">
+          <header className="dish-drawer__header">
             <div>
               <p className="menus-page__eyebrow">
-                {createMode ? "Nuevo menú" : "Ficha de menú"}
+                {isCreateMode ? "Nuevo menú" : "Ficha de menú"}
               </p>
               <h2 id="menu-drawer-title">
-                {createMode ? "Crear menú" : form.name || "Menú"}
+                {isCreateMode ? "Crear menú" : (currentVersion?.name ?? "Menú")}
               </h2>
             </div>
             <button
-              ref={closeRef}
-              className="menu-drawer__close"
+              ref={closeButtonRef}
+              className="dish-drawer__close"
               type="button"
               onClick={() => void requestClose()}
-              aria-label="Cerrar ficha"
+              aria-label={
+                isCreateMode
+                  ? "Cerrar creación de menú"
+                  : "Cerrar ficha del menú"
+              }
             >
               ×
             </button>
           </header>
-          <div className="menu-drawer__body">
+
+          <div className="dish-drawer__body">
             {loading && <p className="menus-feedback">Cargando ficha…</p>}
-            {error && (
-              <p className="menus-feedback menus-feedback--error" role="alert">
-                {error}
-              </p>
+
+            {!loading && error && (
+              <div
+                className="menus-feedback menus-feedback--error"
+                role="alert"
+              >
+                <p>{error}</p>
+                <button type="button" onClick={() => setError(null)}>
+                  Cerrar aviso
+                </button>
+              </div>
             )}
-            {!loading && (createMode || menu) && (
-              <form className="menu-form" onSubmit={submit}>
-                {menu && (
-                  <section className="menu-form__summary">
-                    <span
-                      className={`menus-status menus-status--${menu.active ? "active" : "inactive"}`}
-                    >
-                      {menu.active ? "Activo" : "Inactivo"}
-                    </span>
-                    <button
-                      type="button"
-                      className="menu-form__secondary-action"
-                      onClick={() => void toggleActive()}
-                    >
-                      {menu.active ? "Desactivar menú" : "Activar menú"}
-                    </button>
-                  </section>
-                )}
-                <div className="menu-form__fields">
-                  <label>
-                    Nombre
-                    <input
-                      value={form.name}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, name: e.target.value }))
-                      }
-                      required
-                    />
-                  </label>
-                  <label>
-                    Precio
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.price}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, price: e.target.value }))
-                      }
-                      required
-                    />
-                  </label>
-                </div>
-                <section className="menu-form__section">
-                  <div className="menu-form__section-header">
-                    <div>
-                      <p className="menus-page__eyebrow">Composición</p>
-                      <h3>
-                        {createMode ? "Primera versión" : "Nueva versión"}
-                      </h3>
-                    </div>
-                    <span>
-                      {form.items.length} ítem
-                      {form.items.length === 1 ? "" : "s"}
-                    </span>
-                  </div>
-                  <input
-                    className="menu-dish-search"
-                    type="search"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Buscar platos activos…"
-                    aria-label="Buscar platos activos"
-                  />
-                  {optionsLoading && <small>Buscando platos…</small>}
-                  {!optionsLoading && options.length > 0 && (
-                    <div className="menu-dish-options">
-                      {options.slice(0, 8).map((o) => (
-                        <div className="menu-dish-option" key={o.versionId}>
-                          <div>
-                            <strong>{o.name}</strong>
-                            <span>
-                              v{o.versionNumber} · {formatCurrency(o.price)}
-                            </span>
-                          </div>
-                          <div>
-                            <button
-                              type="button"
-                              onClick={() => add(o, "main")}
-                              disabled={
-                                form.items.some(
-                                  (i) => i.dishVersion.id === o.versionId,
-                                ) || form.items.some((i) => i.role === "main")
-                              }
-                            >
-                              Principal
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => add(o, "side")}
-                              disabled={form.items.some(
-                                (i) => i.dishVersion.id === o.versionId,
-                              )}
-                            >
-                              Guarnición
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div className="menu-selected-items">
-                    {form.items.map((i) => (
-                      <article
-                        className="menu-selected-item"
-                        key={i.dishVersion.id}
-                      >
-                        <div>
-                          <strong>{i.dishVersion.name}</strong>
-                          <span>
-                            v{i.dishVersion.versionNumber} ·{" "}
-                            {formatCurrency(i.dishVersion.price)}
-                          </span>
-                        </div>
-                        <div>
-                          <select
-                            value={i.role}
-                            onChange={(e) =>
-                              changeRole(
-                                i.dishVersion.id,
-                                e.target.value as MenuItemRole,
-                              )
-                            }
-                            aria-label={`Rol de ${i.dishVersion.name}`}
-                          >
-                            <option value="main">Principal</option>
-                            <option value="side">Guarnición</option>
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => remove(i.dishVersion.id)}
-                          >
-                            Quitar
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-                {!createMode && versions.length > 0 && (
-                  <section className="menu-form__section">
-                    <div className="menu-form__section-header">
-                      <div>
-                        <p className="menus-page__eyebrow">Historial</p>
-                        <h3>Versiones</h3>
-                      </div>
-                    </div>
-                    <div className="menu-version-list">
-                      {versions.map((v) => (
-                        <article key={v.id}>
-                          <div>
-                            <strong>
-                              v{v.versionNumber} — {v.name}
-                            </strong>
-                            <span>
-                              {formatCurrency(v.price)} ·{" "}
-                              {formatDate(v.createdAt)}
-                            </span>
-                          </div>
-                          {v.id === menu?.currentVersion?.id && <b>Actual</b>}
-                        </article>
-                      ))}
-                    </div>
-                  </section>
-                )}
-                {message && (
-                  <p className="menu-form__message" role="status">
-                    {message}
-                  </p>
-                )}
-                <footer className="menu-form__actions">
+
+            {!loading && isCreateMode && (
+              <form className="dish-form" onSubmit={handleSubmit}>
+                <p className="dish-form__hint">
+                  El nombre y el precio pertenecen a la primera versión del
+                  menú. La composición necesita exactamente un plato principal;
+                  las guarniciones son opcionales.
+                </p>
+                {composerSection}
+                <footer className="dish-form__actions">
                   <button
-                    className="menu-form__secondary-action"
                     type="button"
                     onClick={() => void requestClose()}
+                    disabled={saving}
                   >
                     Cancelar
                   </button>
-                  <button
-                    className="menu-form__primary-action"
-                    type="submit"
-                    disabled={saving}
-                  >
-                    {saving
-                      ? "Guardando…"
-                      : createMode
-                        ? "Crear menú"
-                        : "Crear nueva versión"}
+                  <button type="submit" disabled={saving || !dirty}>
+                    {saving ? "Creando…" : "Crear menú"}
                   </button>
                 </footer>
               </form>
+            )}
+
+            {!loading && !isCreateMode && menu && (
+              <div className="dish-form">
+                <section
+                  className="dish-form__summary"
+                  aria-label="Estado del menú"
+                >
+                  <div className="dish-form__summary-main">
+                    <span
+                      className={`menus-status menus-status--${
+                        menu.active ? "active" : "inactive"
+                      }`}
+                    >
+                      {menu.active ? "Activo" : "Inactivo"}
+                    </span>
+                    <p>
+                      {currentVersion
+                        ? `Versión actual: v${currentVersion.versionNumber} — ${formatCurrency(currentVersion.price)}`
+                        : "Sin versiones cargadas"}
+                    </p>
+                  </div>
+                  <button
+                    className="dish-form__status-action"
+                    type="button"
+                    onClick={() => void handleActiveToggle()}
+                    disabled={statusSaving}
+                  >
+                    {statusSaving
+                      ? "Actualizando…"
+                      : menu.active
+                        ? "Desactivar menú"
+                        : "Activar menú"}
+                  </button>
+                </section>
+
+                {currentVersion && (
+                  <section
+                    className="dish-drawer__section"
+                    aria-labelledby="menu-current-title"
+                  >
+                    <div className="dish-drawer__section-heading">
+                      <div>
+                        <h3 id="menu-current-title">Composición actual</h3>
+                        <p>
+                          Versión v{currentVersion.versionNumber}, no editable.
+                        </p>
+                      </div>
+                    </div>
+                    <ul className="menu-composer__sides menu-composer__sides--readonly">
+                      {currentVersion.items
+                        .slice()
+                        .sort((a, b) =>
+                          a.role === "main" ? -1 : b.role === "main" ? 1 : 0,
+                        )
+                        .map((item) => (
+                          <li key={item.id} className="menu-composer__item">
+                            <span
+                              className={`menu-composer__role-badge ${
+                                item.role === "side"
+                                  ? "menu-composer__role-badge--side"
+                                  : ""
+                              }`}
+                            >
+                              {item.role === "main"
+                                ? "Principal"
+                                : "Guarnición"}
+                            </span>
+                            <span className="menu-composer__item-name">
+                              {item.dishVersion.name}
+                            </span>
+                            <span>
+                              {formatCurrency(item.dishVersion.price)}
+                            </span>
+                          </li>
+                        ))}
+                    </ul>
+                  </section>
+                )}
+
+                <section
+                  className="dish-drawer__section"
+                  aria-labelledby="menu-version-title"
+                >
+                  <div className="dish-drawer__section-heading">
+                    <div>
+                      <h3 id="menu-version-title">Nueva versión</h3>
+                      <p>
+                        Ajustá nombre, precio o composición. La versión actual
+                        no se modifica ni se elimina.
+                      </p>
+                    </div>
+                  </div>
+
+                  {versionError && (
+                    <div
+                      className="dish-link-feedback dish-link-feedback--error"
+                      role="alert"
+                    >
+                      {versionError}
+                    </div>
+                  )}
+
+                  {versionMessage && (
+                    <p className="dish-form__success" role="status">
+                      {versionMessage}
+                    </p>
+                  )}
+
+                  {composerSection}
+
+                  <button
+                    className="dish-link-rotate"
+                    type="button"
+                    onClick={() => void handleCreateVersion()}
+                    disabled={versionSaving || !dirty}
+                  >
+                    {versionSaving ? "Creando versión…" : "Crear nueva versión"}
+                  </button>
+                </section>
+
+                <section
+                  className="dish-drawer__section"
+                  aria-labelledby="menu-history-title"
+                >
+                  <div className="dish-drawer__section-heading">
+                    <div>
+                      <h3 id="menu-history-title">Historial de versiones</h3>
+                      <p>
+                        Cada edición de nombre, precio o composición queda
+                        registrada acá.
+                      </p>
+                    </div>
+                    <span className="client-link-status">
+                      {versions.length} versión(es)
+                    </span>
+                  </div>
+                  <ul className="dish-version-list">
+                    {versions.map((version) => (
+                      <li key={version.id}>
+                        <div>
+                          <strong>v{version.versionNumber}</strong>
+                          <span>{version.name}</span>
+                        </div>
+                        <div className="dish-version-list__meta">
+                          <span>{formatCurrency(version.price)}</span>
+                          <small>{formatDate(version.createdAt)}</small>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <footer className="dish-form__actions">
+                  <button type="button" onClick={() => void requestClose()}>
+                    Cerrar
+                  </button>
+                </footer>
+              </div>
             )}
           </div>
         </aside>
