@@ -4,6 +4,7 @@ import { listClients } from "./services/clients.service";
 import type { Client } from "./types/client";
 import type { ClientListItem } from "./types/client-list";
 import "./clients.css";
+import "./client-details.css";
 
 const PAGE_SIZE = 20;
 type StatusFilter = "all" | "active" | "inactive";
