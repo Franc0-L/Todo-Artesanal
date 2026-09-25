@@ -88,7 +88,10 @@ export function DishDrawer({
       form.climate !== ""
     : dish
       ? form.category !== (dish.category ?? "") ||
-        form.climate !== (dish.climate ?? "")
+        form.climate !== (dish.climate ?? "") ||
+        versionForm.name !== (currentVersion?.name ?? "") ||
+        versionForm.price !==
+          (currentVersion ? String(currentVersion.price) : "")
       : false;
 
   function resetState() {
@@ -534,158 +537,138 @@ export function DishDrawer({
                   </label>
                 </div>
 
-                {!isCreateMode && dish && (
-                  <>
-                    <section
-                      className="dish-drawer__section"
-                      aria-labelledby="dish-version-title"
-                    >
-                      <div className="dish-drawer__section-heading">
-                        <div>
-                          <h3 id="dish-version-title">Nueva versión</h3>
-                          <p>
-                            Crea una versión nueva con nombre y/o precio
-                            actualizados. La versión actual no se modifica ni se
-                            elimina.
-                          </p>
-                        </div>
+                {!isCreateMode && (
+                  <section className="dish-form__section">
+                    <div className="dish-form__section-header">
+                      <div>
+                        <p className="platos-page__eyebrow">Versionado</p>
+                        <h3>Nueva versión</h3>
                       </div>
+                      <span className="dish-form__version-count">
+                        {versions.length} versión
+                        {versions.length === 1 ? "" : "es"}
+                      </span>
+                    </div>
 
-                      {versionError && (
-                        <div
-                          className="dish-link-feedback dish-link-feedback--error"
-                          role="alert"
-                        >
-                          {versionError}
-                        </div>
-                      )}
+                    <p className="dish-form__hint">
+                      El nombre y el precio son inmutables una vez utilizados.
+                      Crear una versión nueva conserva todas las anteriores.
+                    </p>
 
-                      {versionMessage && (
-                        <p className="dish-form__success" role="status">
-                          {versionMessage}
-                        </p>
-                      )}
+                    <div className="dish-form__fields">
+                      <label>
+                        Nombre de la nueva versión
+                        <input
+                          type="text"
+                          value={versionForm.name}
+                          onChange={(event) =>
+                            updateVersionField("name", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label>
+                        Precio de la nueva versión
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={versionForm.price}
+                          onChange={(event) =>
+                            updateVersionField("price", event.target.value)
+                          }
+                        />
+                      </label>
+                    </div>
 
-                      <div className="dish-form__fields">
-                        <label>
-                          Nombre
-                          <input
-                            type="text"
-                            value={versionForm.name}
-                            onChange={(event) =>
-                              updateVersionField("name", event.target.value)
-                            }
-                          />
-                        </label>
-                        <label>
-                          Precio
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={versionForm.price}
-                            onChange={(event) =>
-                              updateVersionField("price", event.target.value)
-                            }
-                          />
-                        </label>
-                      </div>
-
-                      <button
-                        className="dish-link-rotate"
-                        type="button"
-                        onClick={() => void handleCreateVersion()}
-                        disabled={versionSaving || saving || statusSaving}
-                      >
-                        {versionSaving
-                          ? "Creando versión…"
-                          : "Crear nueva versión"}
-                      </button>
-                    </section>
-
-                    <section
-                      className="dish-drawer__section"
-                      aria-labelledby="dish-history-title"
-                    >
-                      <div className="dish-drawer__section-heading">
-                        <div>
-                          <h3 id="dish-history-title">
-                            Historial de versiones
-                          </h3>
-                          <p>
-                            Cada edición de nombre o precio queda registrada
-                            acá.
-                          </p>
-                        </div>
-                        <span className="client-link-status">
-                          {versions.length} versión(es)
-                        </span>
-                      </div>
-
-                      <ul className="dish-version-list">
-                        {versions.map((version) => (
-                          <li key={version.id}>
-                            <div>
-                              <strong>v{version.versionNumber}</strong>
-                              <span>{version.name}</span>
-                            </div>
-                            <div className="dish-version-list__meta">
-                              <span>{formatCurrency(version.price)}</span>
-                              <small>{formatDate(version.createdAt)}</small>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-
-                    <section
-                      className="dish-drawer__section"
-                      aria-labelledby="dish-usage-title"
-                    >
-                      <div className="dish-drawer__section-heading">
-                        <div>
-                          <h3 id="dish-usage-title">Uso histórico</h3>
-                          <p>
-                            Días únicos en que este plato formó parte de la
-                            oferta.
-                          </p>
-                        </div>
-                      </div>
-                      <p className="dish-usage__summary">
-                        {usage && usage.totalUses > 0
-                          ? `Usado en ${usage.totalUses} día(s). Último uso: ${
-                              usage.lastUsedAt
-                                ? formatDate(usage.lastUsedAt)
-                                : "—"
-                            }.`
-                          : "Todavía no fue ofrecido en ninguna semana."}
+                    {versionError && (
+                      <p className="dish-form__message dish-form__message--error" role="alert">
+                        {versionError}
                       </p>
-                    </section>
-                  </>
+                    )}
+                    {versionMessage && (
+                      <p className="dish-form__message" role="status">
+                        {versionMessage}
+                      </p>
+                    )}
+
+                    <button
+                      className="dish-form__secondary-action"
+                      type="button"
+                      onClick={() => void handleCreateVersion()}
+                      disabled={versionSaving || saving}
+                    >
+                      {versionSaving ? "Creando versión…" : "Crear versión"}
+                    </button>
+                  </section>
+                )}
+
+                {!isCreateMode && versions.length > 0 && (
+                  <section className="dish-form__section">
+                    <div className="dish-form__section-header">
+                      <div>
+                        <p className="platos-page__eyebrow">Historial</p>
+                        <h3>Versiones anteriores</h3>
+                      </div>
+                    </div>
+                    <div className="dish-version-list">
+                      {versions.map((version) => (
+                        <article className="dish-version-card" key={version.id}>
+                          <div>
+                            <strong>
+                              v{version.versionNumber} — {version.name}
+                            </strong>
+                            <p>
+                              {formatCurrency(version.price)} · {formatDate(version.createdAt)}
+                            </p>
+                          </div>
+                          {version.id === currentVersion?.id && (
+                            <span className="dish-version-card__current">
+                              Actual
+                            </span>
+                          )}
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {!isCreateMode && usage && (
+                  <section className="dish-form__section">
+                    <div className="dish-form__section-header">
+                      <div>
+                        <p className="platos-page__eyebrow">Uso histórico</p>
+                        <h3>Utilización del plato</h3>
+                      </div>
+                    </div>
+                    <p className="dish-form__usage">
+                      Este plato fue utilizado en {usage.totalUses} registro
+                      {usage.totalUses === 1 ? "" : "s"} histórico
+                      {usage.totalUses === 1 ? "" : "s"}.
+                    </p>
+                  </section>
                 )}
 
                 {saveMessage && (
-                  <p className="dish-form__success" role="status">
+                  <p className="dish-form__message" role="status">
                     {saveMessage}
                   </p>
                 )}
 
                 <footer className="dish-form__actions">
                   <button
+                    className="dish-form__secondary-action"
                     type="button"
                     onClick={() => void requestClose()}
-                    disabled={saving || statusSaving || versionSaving}
                   >
                     Cancelar
                   </button>
                   <button
+                    className="dish-form__primary-action"
                     type="submit"
-                    disabled={saving || statusSaving || versionSaving || !dirty}
+                    disabled={saving}
                   >
                     {saving
-                      ? isCreateMode
-                        ? "Creando…"
-                        : "Guardando…"
+                      ? "Guardando…"
                       : isCreateMode
                         ? "Crear plato"
                         : "Guardar cambios"}
