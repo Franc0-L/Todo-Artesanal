@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { DishDrawer } from "./DishDrawer";
 import { listDishes } from "./services/dishes.service";
 import type { Climate } from "../../types/domain";
@@ -8,6 +14,7 @@ import "./dishes.css";
 import "./dish-details.css";
 
 const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 350;
 type StatusFilter = "all" | "active" | "inactive";
 type ClimateFilter = "" | Climate;
 
@@ -31,6 +38,8 @@ export function PlatosPage() {
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const filterDebounceRef = useRef<number | null>(null);
 
   const loadDishes = useCallback(async () => {
     setLoading(true);
@@ -64,9 +73,6 @@ export function PlatosPage() {
     setCreateDrawerOpen(false);
   }, []);
 
-  // A diferencia de clientes, `Dish` no trae `name` (vive en la versión), así
-  // que tras crear forzamos un reload del listado en lugar de reconstruir la
-  // fila a mano.
   const handleDishCreated = useCallback(
     (created: Dish) => {
       setCreateDrawerOpen(false);
@@ -92,8 +98,6 @@ export function PlatosPage() {
     );
   }, []);
 
-  // Se dispara al crear una nueva versión desde el drawer: el nombre del
-  // plato en el listado depende de la versión, no de la identidad.
   const handleVersionCreated = useCallback((dishId: string, name: string) => {
     setItems((current) =>
       current.map((item) => (item.id === dishId ? { ...item, name } : item)),
@@ -104,8 +108,35 @@ export function PlatosPage() {
     void loadDishes();
   }, [loadDishes]);
 
+  // Búsqueda en vivo: nombre y categoría comparten el mismo debounce, para
+  // no disparar una consulta por cada tecla. Al cambiar cualquiera de los
+  // dos, vuelve a página 1 (mismo criterio que el filtro de clima/estado).
+  useEffect(() => {
+    if (filterDebounceRef.current !== null) {
+      window.clearTimeout(filterDebounceRef.current);
+    }
+
+    filterDebounceRef.current = window.setTimeout(() => {
+      setPage(1);
+      setSearch(searchInput.trim());
+      setCategory(categoryInput.trim());
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      if (filterDebounceRef.current !== null) {
+        window.clearTimeout(filterDebounceRef.current);
+      }
+    };
+  }, [searchInput, categoryInput]);
+
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (filterDebounceRef.current !== null) {
+      window.clearTimeout(filterDebounceRef.current);
+      filterDebounceRef.current = null;
+    }
+
     setPage(1);
     setSearch(searchInput.trim());
     setCategory(categoryInput.trim());

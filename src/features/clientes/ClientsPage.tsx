@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { ClientDrawer } from "./ClientDrawer";
 import { listClients } from "./services/clients.service";
 import type { Client } from "./types/client";
@@ -7,6 +13,7 @@ import "./clients.css";
 import "./client-details.css";
 
 const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 350;
 type StatusFilter = "all" | "active" | "inactive";
 
 export function ClientsPage() {
@@ -20,6 +27,8 @@ export function ClientsPage() {
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const searchDebounceRef = useRef<number | null>(null);
 
   const loadClients = useCallback(async () => {
     setLoading(true);
@@ -51,11 +60,19 @@ export function ClientsPage() {
     setCreateDrawerOpen(false);
   }, []);
 
-  const handleClientCreated = useCallback((created: Client) => {
-    setCreateDrawerOpen(false);
-    setSelectedClientId(created.id);
-    setPage(1);
-  }, []);
+  const handleClientCreated = useCallback(
+    (created: Client) => {
+      setCreateDrawerOpen(false);
+      setSelectedClientId(created.id);
+      setPage(1);
+      // Si ya estábamos en la página 1 con los mismos filtros, cambiar
+      // `page` a 1 no dispara una nueva carga por sí solo (la dependencia
+      // no cambia). Forzamos el refresco para que el cliente recién creado
+      // aparezca sin necesidad de tocar filtros o paginación a mano.
+      void loadClients();
+    },
+    [loadClients],
+  );
 
   const handleClientSaved = useCallback((updated: Client) => {
     setItems((current) =>
@@ -77,8 +94,36 @@ export function ClientsPage() {
     void loadClients();
   }, [loadClients]);
 
+  // Búsqueda en vivo: a medida que se escribe, se espera una breve pausa
+  // (debounce) antes de disparar la consulta, para no hacer un pedido por
+  // cada tecla. Cada búsqueda nueva vuelve a página 1: no tiene sentido
+  // mantener el número de página de un filtro anterior sobre un conjunto
+  // de resultados distinto.
+  useEffect(() => {
+    if (searchDebounceRef.current !== null) {
+      window.clearTimeout(searchDebounceRef.current);
+    }
+
+    searchDebounceRef.current = window.setTimeout(() => {
+      setPage(1);
+      setSearch(searchInput.trim());
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      if (searchDebounceRef.current !== null) {
+        window.clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [searchInput]);
+
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (searchDebounceRef.current !== null) {
+      window.clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = null;
+    }
+
     setPage(1);
     setSearch(searchInput.trim());
   }

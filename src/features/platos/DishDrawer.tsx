@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   createDish,
   getDish,
@@ -11,6 +17,7 @@ import {
 } from "./services/dish-versions.service";
 import { getDishUsage } from "./services/dish-usage.service";
 import { formatCurrency, formatDate } from "../../lib/formatters";
+import { useConfirm } from "../../components/ui/useConfirm";
 import type { Climate } from "../../types/domain";
 import type { CreateDishInput, Dish, UpdateDishInput } from "./types/dish";
 import type { CreateDishVersionInput, DishVersion } from "./types/dish-version";
@@ -68,6 +75,8 @@ export function DishDrawer({
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [versionError, setVersionError] = useState<string | null>(null);
   const [versionMessage, setVersionMessage] = useState<string | null>(null);
+
+  const { confirm, confirmDialog } = useConfirm();
 
   const isCreateMode = mode === "create";
   const currentVersion = versions[0] ?? null;
@@ -166,6 +175,25 @@ export function DishDrawer({
     };
   }, [dishId, isCreateMode]);
 
+  const requestClose = useCallback(async () => {
+    if (dirty) {
+      const proceed = await confirm({
+        title: "Cambios sin guardar",
+        message:
+          "Hay cambios sin guardar en esta ficha. Si cerrás ahora, se van a perder.",
+        confirmLabel: "Cerrar sin guardar",
+        cancelLabel: "Seguir editando",
+        tone: "danger",
+      });
+
+      if (!proceed) {
+        return;
+      }
+    }
+
+    onClose();
+  }, [confirm, dirty, onClose]);
+
   useEffect(() => {
     if (!isCreateMode && !dishId) {
       return;
@@ -176,30 +204,12 @@ export function DishDrawer({
         return;
       }
 
-      if (
-        dirty &&
-        !window.confirm("Hay cambios sin guardar. ¿Cerrar la ficha?")
-      ) {
-        return;
-      }
-
-      onClose();
+      void requestClose();
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [dishId, dirty, isCreateMode, onClose]);
-
-  function requestClose() {
-    if (
-      dirty &&
-      !window.confirm("Hay cambios sin guardar. ¿Cerrar la ficha?")
-    ) {
-      return;
-    }
-
-    onClose();
-  }
+  }, [dishId, isCreateMode, requestClose]);
 
   function updateIdentityField<K extends keyof IdentityFormState>(
     field: K,
@@ -281,11 +291,17 @@ export function DishDrawer({
     }
 
     const nextActive = !dish.active;
-    const message = nextActive
-      ? "¿Activar este plato? Volverá a estar disponible para incluir en la oferta."
-      : "¿Desactivar este plato? Su historial se conservará y dejará de estar disponible para nuevas semanas.";
 
-    if (!window.confirm(message)) {
+    const proceed = await confirm({
+      title: nextActive ? "Activar plato" : "Desactivar plato",
+      message: nextActive
+        ? "¿Activar este plato? Volverá a estar disponible para incluir en la oferta."
+        : "¿Desactivar este plato? Su historial se conservará y dejará de estar disponible para nuevas semanas.",
+      confirmLabel: nextActive ? "Activar" : "Desactivar",
+      tone: nextActive ? "default" : "danger",
+    });
+
+    if (!proceed) {
       return;
     }
 
@@ -360,316 +376,327 @@ export function DishDrawer({
   }
 
   return (
-    <div className="dish-drawer__backdrop" onMouseDown={requestClose}>
-      <aside
-        className="dish-drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="dish-drawer-title"
-        onMouseDown={(event) => event.stopPropagation()}
+    <>
+      <div
+        className="dish-drawer__backdrop"
+        onMouseDown={() => void requestClose()}
       >
-        <header className="dish-drawer__header">
-          <div>
-            <p className="platos-page__eyebrow">
-              {isCreateMode ? "Nuevo plato" : "Ficha de plato"}
-            </p>
-            <h2 id="dish-drawer-title">
-              {isCreateMode ? "Crear plato" : (currentVersion?.name ?? "Plato")}
-            </h2>
-          </div>
-          <button
-            ref={closeButtonRef}
-            className="dish-drawer__close"
-            type="button"
-            onClick={requestClose}
-            aria-label={
-              isCreateMode
-                ? "Cerrar creación de plato"
-                : "Cerrar ficha del plato"
-            }
-          >
-            ×
-          </button>
-        </header>
-
-        <div className="dish-drawer__body">
-          {loading && <p className="platos-feedback">Cargando ficha…</p>}
-
-          {!loading && error && (
-            <div
-              className="platos-feedback platos-feedback--error"
-              role="alert"
-            >
-              <p>{error}</p>
-              <button type="button" onClick={() => setError(null)}>
-                Cerrar aviso
-              </button>
+        <aside
+          className="dish-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dish-drawer-title"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <header className="dish-drawer__header">
+            <div>
+              <p className="platos-page__eyebrow">
+                {isCreateMode ? "Nuevo plato" : "Ficha de plato"}
+              </p>
+              <h2 id="dish-drawer-title">
+                {isCreateMode
+                  ? "Crear plato"
+                  : (currentVersion?.name ?? "Plato")}
+              </h2>
             </div>
-          )}
+            <button
+              ref={closeButtonRef}
+              className="dish-drawer__close"
+              type="button"
+              onClick={() => void requestClose()}
+              aria-label={
+                isCreateMode
+                  ? "Cerrar creación de plato"
+                  : "Cerrar ficha del plato"
+              }
+            >
+              ×
+            </button>
+          </header>
 
-          {!loading && (isCreateMode || dish) && (
-            <form className="dish-form" onSubmit={handleSubmit}>
-              {dish && (
-                <section
-                  className="dish-form__summary"
-                  aria-label="Estado del plato"
-                >
-                  <div className="dish-form__summary-main">
-                    <span
-                      className={`platos-status platos-status--${
-                        dish.active ? "active" : "inactive"
-                      }`}
-                    >
-                      {dish.active ? "Activo" : "Inactivo"}
-                    </span>
-                    <p>
-                      {currentVersion
-                        ? `Versión actual: v${currentVersion.versionNumber} — ${formatCurrency(currentVersion.price)}`
-                        : "Sin versiones cargadas"}
-                    </p>
-                  </div>
-                  <button
-                    className="dish-form__status-action"
-                    type="button"
-                    onClick={() => void handleActiveToggle()}
-                    disabled={statusSaving || saving}
-                  >
-                    {statusSaving
-                      ? "Actualizando…"
-                      : dish.active
-                        ? "Desactivar plato"
-                        : "Activar plato"}
-                  </button>
-                </section>
-              )}
+          <div className="dish-drawer__body">
+            {loading && <p className="platos-feedback">Cargando ficha…</p>}
 
-              {isCreateMode && (
-                <p className="dish-form__hint">
-                  El nombre y el precio pertenecen a la primera versión del
-                  plato. Para cambiarlos más adelante hay que crear una versión
-                  nueva: la anterior queda registrada tal cual.
-                </p>
-              )}
-
-              {isCreateMode && (
-                <div className="dish-form__fields">
-                  <label>
-                    Nombre
-                    <input
-                      type="text"
-                      value={versionForm.name}
-                      onChange={(event) =>
-                        updateVersionField("name", event.target.value)
-                      }
-                      required
-                      autoFocus
-                    />
-                  </label>
-                  <label>
-                    Precio
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={versionForm.price}
-                      onChange={(event) =>
-                        updateVersionField("price", event.target.value)
-                      }
-                      required
-                    />
-                  </label>
-                </div>
-              )}
-
-              <div className="dish-form__fields">
-                <label>
-                  Categoría
-                  <input
-                    type="text"
-                    value={form.category}
-                    onChange={(event) =>
-                      updateIdentityField("category", event.target.value)
-                    }
-                    placeholder="Texto libre (ej: Principal, Guarnición)"
-                  />
-                </label>
-                <label>
-                  Clima
-                  <select
-                    value={form.climate}
-                    onChange={(event) =>
-                      updateIdentityField(
-                        "climate",
-                        event.target.value as Climate | "",
-                      )
-                    }
-                  >
-                    <option value="">Sin preferencia</option>
-                    <option value="frio">Frío</option>
-                    <option value="templado">Templado</option>
-                    <option value="calor">Calor</option>
-                  </select>
-                </label>
+            {!loading && error && (
+              <div
+                className="platos-feedback platos-feedback--error"
+                role="alert"
+              >
+                <p>{error}</p>
+                <button type="button" onClick={() => setError(null)}>
+                  Cerrar aviso
+                </button>
               </div>
+            )}
 
-              {!isCreateMode && dish && (
-                <>
+            {!loading && (isCreateMode || dish) && (
+              <form className="dish-form" onSubmit={handleSubmit}>
+                {dish && (
                   <section
-                    className="dish-drawer__section"
-                    aria-labelledby="dish-version-title"
+                    className="dish-form__summary"
+                    aria-label="Estado del plato"
                   >
-                    <div className="dish-drawer__section-heading">
-                      <div>
-                        <h3 id="dish-version-title">Nueva versión</h3>
-                        <p>
-                          Crea una versión nueva con nombre y/o precio
-                          actualizados. La versión actual no se modifica ni se
-                          elimina.
-                        </p>
-                      </div>
-                    </div>
-
-                    {versionError && (
-                      <div
-                        className="dish-link-feedback dish-link-feedback--error"
-                        role="alert"
+                    <div className="dish-form__summary-main">
+                      <span
+                        className={`platos-status platos-status--${
+                          dish.active ? "active" : "inactive"
+                        }`}
                       >
-                        {versionError}
-                      </div>
-                    )}
-
-                    {versionMessage && (
-                      <p className="dish-form__success" role="status">
-                        {versionMessage}
+                        {dish.active ? "Activo" : "Inactivo"}
+                      </span>
+                      <p>
+                        {currentVersion
+                          ? `Versión actual: v${currentVersion.versionNumber} — ${formatCurrency(currentVersion.price)}`
+                          : "Sin versiones cargadas"}
                       </p>
-                    )}
-
-                    <div className="dish-form__fields">
-                      <label>
-                        Nombre
-                        <input
-                          type="text"
-                          value={versionForm.name}
-                          onChange={(event) =>
-                            updateVersionField("name", event.target.value)
-                          }
-                        />
-                      </label>
-                      <label>
-                        Precio
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={versionForm.price}
-                          onChange={(event) =>
-                            updateVersionField("price", event.target.value)
-                          }
-                        />
-                      </label>
                     </div>
-
                     <button
-                      className="dish-link-rotate"
+                      className="dish-form__status-action"
                       type="button"
-                      onClick={() => void handleCreateVersion()}
-                      disabled={versionSaving || saving || statusSaving}
+                      onClick={() => void handleActiveToggle()}
+                      disabled={statusSaving || saving}
                     >
-                      {versionSaving
-                        ? "Creando versión…"
-                        : "Crear nueva versión"}
+                      {statusSaving
+                        ? "Actualizando…"
+                        : dish.active
+                          ? "Desactivar plato"
+                          : "Activar plato"}
                     </button>
                   </section>
+                )}
 
-                  <section
-                    className="dish-drawer__section"
-                    aria-labelledby="dish-history-title"
-                  >
-                    <div className="dish-drawer__section-heading">
-                      <div>
-                        <h3 id="dish-history-title">Historial de versiones</h3>
-                        <p>
-                          Cada edición de nombre o precio queda registrada acá.
-                        </p>
+                {isCreateMode && (
+                  <p className="dish-form__hint">
+                    El nombre y el precio pertenecen a la primera versión del
+                    plato. Para cambiarlos más adelante hay que crear una
+                    versión nueva: la anterior queda registrada tal cual.
+                  </p>
+                )}
+
+                {isCreateMode && (
+                  <div className="dish-form__fields">
+                    <label>
+                      Nombre
+                      <input
+                        type="text"
+                        value={versionForm.name}
+                        onChange={(event) =>
+                          updateVersionField("name", event.target.value)
+                        }
+                        required
+                        autoFocus
+                      />
+                    </label>
+                    <label>
+                      Precio
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={versionForm.price}
+                        onChange={(event) =>
+                          updateVersionField("price", event.target.value)
+                        }
+                        required
+                      />
+                    </label>
+                  </div>
+                )}
+
+                <div className="dish-form__fields">
+                  <label>
+                    Categoría
+                    <input
+                      type="text"
+                      value={form.category}
+                      onChange={(event) =>
+                        updateIdentityField("category", event.target.value)
+                      }
+                      placeholder="Texto libre (ej: Principal, Guarnición)"
+                    />
+                  </label>
+                  <label>
+                    Clima
+                    <select
+                      value={form.climate}
+                      onChange={(event) =>
+                        updateIdentityField(
+                          "climate",
+                          event.target.value as Climate | "",
+                        )
+                      }
+                    >
+                      <option value="">Sin preferencia</option>
+                      <option value="frio">Frío</option>
+                      <option value="templado">Templado</option>
+                      <option value="calor">Calor</option>
+                    </select>
+                  </label>
+                </div>
+
+                {!isCreateMode && dish && (
+                  <>
+                    <section
+                      className="dish-drawer__section"
+                      aria-labelledby="dish-version-title"
+                    >
+                      <div className="dish-drawer__section-heading">
+                        <div>
+                          <h3 id="dish-version-title">Nueva versión</h3>
+                          <p>
+                            Crea una versión nueva con nombre y/o precio
+                            actualizados. La versión actual no se modifica ni se
+                            elimina.
+                          </p>
+                        </div>
                       </div>
-                      <span className="client-link-status">
-                        {versions.length} versión(es)
-                      </span>
-                    </div>
 
-                    <ul className="dish-version-list">
-                      {versions.map((version) => (
-                        <li key={version.id}>
-                          <div>
-                            <strong>v{version.versionNumber}</strong>
-                            <span>{version.name}</span>
-                          </div>
-                          <div className="dish-version-list__meta">
-                            <span>{formatCurrency(version.price)}</span>
-                            <small>{formatDate(version.createdAt)}</small>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
+                      {versionError && (
+                        <div
+                          className="dish-link-feedback dish-link-feedback--error"
+                          role="alert"
+                        >
+                          {versionError}
+                        </div>
+                      )}
 
-                  <section
-                    className="dish-drawer__section"
-                    aria-labelledby="dish-usage-title"
-                  >
-                    <div className="dish-drawer__section-heading">
-                      <div>
-                        <h3 id="dish-usage-title">Uso histórico</h3>
-                        <p>
-                          Días únicos en que este plato formó parte de la
-                          oferta.
+                      {versionMessage && (
+                        <p className="dish-form__success" role="status">
+                          {versionMessage}
                         </p>
+                      )}
+
+                      <div className="dish-form__fields">
+                        <label>
+                          Nombre
+                          <input
+                            type="text"
+                            value={versionForm.name}
+                            onChange={(event) =>
+                              updateVersionField("name", event.target.value)
+                            }
+                          />
+                        </label>
+                        <label>
+                          Precio
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={versionForm.price}
+                            onChange={(event) =>
+                              updateVersionField("price", event.target.value)
+                            }
+                          />
+                        </label>
                       </div>
-                    </div>
-                    <p className="dish-usage__summary">
-                      {usage && usage.totalUses > 0
-                        ? `Usado en ${usage.totalUses} día(s). Último uso: ${
-                            usage.lastUsedAt
-                              ? formatDate(usage.lastUsedAt)
-                              : "—"
-                          }.`
-                        : "Todavía no fue ofrecido en ninguna semana."}
-                    </p>
-                  </section>
-                </>
-              )}
 
-              {saveMessage && (
-                <p className="dish-form__success" role="status">
-                  {saveMessage}
-                </p>
-              )}
+                      <button
+                        className="dish-link-rotate"
+                        type="button"
+                        onClick={() => void handleCreateVersion()}
+                        disabled={versionSaving || saving || statusSaving}
+                      >
+                        {versionSaving
+                          ? "Creando versión…"
+                          : "Crear nueva versión"}
+                      </button>
+                    </section>
 
-              <footer className="dish-form__actions">
-                <button
-                  type="button"
-                  onClick={requestClose}
-                  disabled={saving || statusSaving || versionSaving}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving || statusSaving || versionSaving || !dirty}
-                >
-                  {saving
-                    ? isCreateMode
-                      ? "Creando…"
-                      : "Guardando…"
-                    : isCreateMode
-                      ? "Crear plato"
-                      : "Guardar cambios"}
-                </button>
-              </footer>
-            </form>
-          )}
-        </div>
-      </aside>
-    </div>
+                    <section
+                      className="dish-drawer__section"
+                      aria-labelledby="dish-history-title"
+                    >
+                      <div className="dish-drawer__section-heading">
+                        <div>
+                          <h3 id="dish-history-title">
+                            Historial de versiones
+                          </h3>
+                          <p>
+                            Cada edición de nombre o precio queda registrada
+                            acá.
+                          </p>
+                        </div>
+                        <span className="client-link-status">
+                          {versions.length} versión(es)
+                        </span>
+                      </div>
+
+                      <ul className="dish-version-list">
+                        {versions.map((version) => (
+                          <li key={version.id}>
+                            <div>
+                              <strong>v{version.versionNumber}</strong>
+                              <span>{version.name}</span>
+                            </div>
+                            <div className="dish-version-list__meta">
+                              <span>{formatCurrency(version.price)}</span>
+                              <small>{formatDate(version.createdAt)}</small>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+
+                    <section
+                      className="dish-drawer__section"
+                      aria-labelledby="dish-usage-title"
+                    >
+                      <div className="dish-drawer__section-heading">
+                        <div>
+                          <h3 id="dish-usage-title">Uso histórico</h3>
+                          <p>
+                            Días únicos en que este plato formó parte de la
+                            oferta.
+                          </p>
+                        </div>
+                      </div>
+                      <p className="dish-usage__summary">
+                        {usage && usage.totalUses > 0
+                          ? `Usado en ${usage.totalUses} día(s). Último uso: ${
+                              usage.lastUsedAt
+                                ? formatDate(usage.lastUsedAt)
+                                : "—"
+                            }.`
+                          : "Todavía no fue ofrecido en ninguna semana."}
+                      </p>
+                    </section>
+                  </>
+                )}
+
+                {saveMessage && (
+                  <p className="dish-form__success" role="status">
+                    {saveMessage}
+                  </p>
+                )}
+
+                <footer className="dish-form__actions">
+                  <button
+                    type="button"
+                    onClick={() => void requestClose()}
+                    disabled={saving || statusSaving || versionSaving}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving || statusSaving || versionSaving || !dirty}
+                  >
+                    {saving
+                      ? isCreateMode
+                        ? "Creando…"
+                        : "Guardando…"
+                      : isCreateMode
+                        ? "Crear plato"
+                        : "Guardar cambios"}
+                  </button>
+                </footer>
+              </form>
+            )}
+          </div>
+        </aside>
+      </div>
+      {confirmDialog}
+    </>
   );
 }

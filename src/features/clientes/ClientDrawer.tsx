@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   createClient,
   getClient,
@@ -15,6 +21,7 @@ import type {
   UpdateClientInput,
 } from "./types/client";
 import { ClientHistorySection } from "./ClientHistorySection";
+import { useConfirm } from "../../components/ui/useConfirm";
 
 interface ClientDrawerProps {
   mode: "create" | "edit";
@@ -85,6 +92,8 @@ export function ClientDrawer({
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
+
+  const { confirm, confirmDialog } = useConfirm();
 
   const isCreateMode = mode === "create";
   const dirty = isCreateMode
@@ -204,6 +213,25 @@ export function ClientDrawer({
     };
   }, [clientId, isCreateMode]);
 
+  const requestClose = useCallback(async () => {
+    if (dirty) {
+      const proceed = await confirm({
+        title: "Cambios sin guardar",
+        message:
+          "Hay cambios sin guardar en esta ficha. Si cerrás ahora, se van a perder.",
+        confirmLabel: "Cerrar sin guardar",
+        cancelLabel: "Seguir editando",
+        tone: "danger",
+      });
+
+      if (!proceed) {
+        return;
+      }
+    }
+
+    onClose();
+  }, [confirm, dirty, onClose]);
+
   useEffect(() => {
     if (!isCreateMode && !clientId) {
       return;
@@ -214,30 +242,12 @@ export function ClientDrawer({
         return;
       }
 
-      if (
-        dirty &&
-        !window.confirm("Hay cambios sin guardar. ¿Cerrar la ficha?")
-      ) {
-        return;
-      }
-
-      onClose();
+      void requestClose();
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [clientId, dirty, isCreateMode, onClose]);
-
-  function requestClose() {
-    if (
-      dirty &&
-      !window.confirm("Hay cambios sin guardar. ¿Cerrar la ficha?")
-    ) {
-      return;
-    }
-
-    onClose();
-  }
+  }, [clientId, isCreateMode, requestClose]);
 
   function updateField<K extends keyof ClientFormState>(
     field: K,
@@ -310,11 +320,17 @@ export function ClientDrawer({
     }
 
     const nextActive = !client.active;
-    const message = nextActive
-      ? "¿Activar este cliente? Volverá a ser incluido en futuras semanas activadas."
-      : "¿Desactivar este cliente? Su historial se conservará y dejará de incluirse en futuras semanas activadas.";
 
-    if (!window.confirm(message)) {
+    const proceed = await confirm({
+      title: nextActive ? "Activar cliente" : "Desactivar cliente",
+      message: nextActive
+        ? "¿Activar este cliente? Volverá a ser incluido en futuras semanas activadas."
+        : "¿Desactivar este cliente? Su historial se conservará y dejará de incluirse en futuras semanas activadas.",
+      confirmLabel: nextActive ? "Activar" : "Desactivar",
+      tone: nextActive ? "default" : "danger",
+    });
+
+    if (!proceed) {
       return;
     }
 
@@ -343,11 +359,15 @@ export function ClientDrawer({
       return;
     }
 
-    if (
-      !window.confirm(
+    const proceed = await confirm({
+      title: "Rotar enlace personal",
+      message:
         "Al rotar el enlace, el enlace anterior dejará de funcionar inmediatamente. ¿Continuar?",
-      )
-    ) {
+      confirmLabel: "Rotar enlace",
+      tone: "danger",
+    });
+
+    if (!proceed) {
       return;
     }
 
@@ -395,273 +415,282 @@ export function ClientDrawer({
   }
 
   return (
-    <div className="client-drawer__backdrop" onMouseDown={requestClose}>
-      <aside
-        className="client-drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="client-drawer-title"
-        onMouseDown={(event) => event.stopPropagation()}
+    <>
+      <div
+        className="client-drawer__backdrop"
+        onMouseDown={() => void requestClose()}
       >
-        <header className="client-drawer__header">
-          <div>
-            <p className="clients-page__eyebrow">
-              {isCreateMode ? "Nuevo cliente" : "Ficha de cliente"}
-            </p>
-            <h2 id="client-drawer-title">
-              {isCreateMode ? "Crear cliente" : (client?.name ?? "Cliente")}
-            </h2>
-          </div>
-          <button
-            ref={closeButtonRef}
-            className="client-drawer__close"
-            type="button"
-            onClick={requestClose}
-            aria-label={
-              isCreateMode
-                ? "Cerrar creación de cliente"
-                : "Cerrar ficha del cliente"
-            }
-          >
-            ×
-          </button>
-        </header>
-
-        <div className="client-drawer__body">
-          {loading && <p className="clients-feedback">Cargando ficha…</p>}
-
-          {!loading && error && (
-            <div
-              className="clients-feedback clients-feedback--error"
-              role="alert"
-            >
-              <p>{error}</p>
-              <button type="button" onClick={() => setError(null)}>
-                Cerrar aviso
-              </button>
+        <aside
+          className="client-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="client-drawer-title"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <header className="client-drawer__header">
+            <div>
+              <p className="clients-page__eyebrow">
+                {isCreateMode ? "Nuevo cliente" : "Ficha de cliente"}
+              </p>
+              <h2 id="client-drawer-title">
+                {isCreateMode ? "Crear cliente" : (client?.name ?? "Cliente")}
+              </h2>
             </div>
-          )}
+            <button
+              ref={closeButtonRef}
+              className="client-drawer__close"
+              type="button"
+              onClick={() => void requestClose()}
+              aria-label={
+                isCreateMode
+                  ? "Cerrar creación de cliente"
+                  : "Cerrar ficha del cliente"
+              }
+            >
+              ×
+            </button>
+          </header>
 
-          {!loading && (isCreateMode || client) && (
-            <form className="client-form" onSubmit={handleSubmit}>
-              {client && (
-                <section
-                  className="client-form__summary"
-                  aria-label="Datos básicos del cliente"
-                >
-                  <div className="client-form__summary-main">
-                    <span
-                      className={`clients-status clients-status--${
-                        client.active ? "active" : "inactive"
-                      }`}
-                    >
-                      {client.active ? "Activo" : "Inactivo"}
-                    </span>
-                    <p>{client.phone ?? "Teléfono no informado"}</p>
-                    <p>{client.address ?? "Dirección no informada"}</p>
-                  </div>
-                  <button
-                    className="client-form__status-action"
-                    type="button"
-                    onClick={() => void handleActiveToggle()}
-                    disabled={statusSaving || saving}
-                  >
-                    {statusSaving
-                      ? "Actualizando…"
-                      : client.active
-                        ? "Desactivar cliente"
-                        : "Activar cliente"}
-                  </button>
-                </section>
-              )}
+          <div className="client-drawer__body">
+            {loading && <p className="clients-feedback">Cargando ficha…</p>}
 
-              {isCreateMode && (
-                <p className="client-form__hint">
-                  El cliente se creará activo. Después podrás completar su
-                  configuración desde la ficha.
-                </p>
-              )}
-
-              <div className="client-form__fields">
-                <label>
-                  Nombre
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(event) =>
-                      updateField("name", event.target.value)
-                    }
-                    required
-                    autoComplete="name"
-                    autoFocus
-                  />
-                </label>
-                <label>
-                  Teléfono
-                  <input
-                    type="tel"
-                    value={form.phone}
-                    onChange={(event) =>
-                      updateField("phone", event.target.value)
-                    }
-                    autoComplete="tel"
-                  />
-                </label>
-                <label>
-                  Dirección
-                  <input
-                    type="text"
-                    value={form.address}
-                    onChange={(event) =>
-                      updateField("address", event.target.value)
-                    }
-                    autoComplete="street-address"
-                  />
-                </label>
-                <label>
-                  Cuidados especiales
-                  <textarea
-                    value={form.specialCare}
-                    onChange={(event) =>
-                      updateField("specialCare", event.target.value)
-                    }
-                    rows={3}
-                  />
-                </label>
-                <label>
-                  Observaciones
-                  <textarea
-                    value={form.notes}
-                    onChange={(event) =>
-                      updateField("notes", event.target.value)
-                    }
-                    rows={4}
-                  />
-                </label>
-                <label className="client-form__checkbox">
-                  <input
-                    type="checkbox"
-                    checked={form.allowsHalfPortion}
-                    onChange={(event) =>
-                      updateField("allowsHalfPortion", event.target.checked)
-                    }
-                  />
-                  <span>Permitir media vianda</span>
-                </label>
+            {!loading && error && (
+              <div
+                className="clients-feedback clients-feedback--error"
+                role="alert"
+              >
+                <p>{error}</p>
+                <button type="button" onClick={() => setError(null)}>
+                  Cerrar aviso
+                </button>
               </div>
+            )}
 
-              {!isCreateMode && client && (
-                <>
+            {!loading && (isCreateMode || client) && (
+              <form className="client-form" onSubmit={handleSubmit}>
+                {client && (
                   <section
-                    className="client-drawer__section"
-                    aria-labelledby="client-link-title"
+                    className="client-form__summary"
+                    aria-label="Datos básicos del cliente"
                   >
-                    <div className="client-drawer__section-heading">
-                      <div>
-                        <h3 id="client-link-title">Enlace personal</h3>
-                        <p>
-                          El enlace anterior queda invalidado al rotarlo. El
-                          nuevo token se muestra una sola vez.
-                        </p>
-                      </div>
-                      <span className="client-link-status">
-                        {tokenLoading
-                          ? "Consultando…"
-                          : hasActiveToken === null
-                            ? "Estado desconocido"
-                            : hasActiveToken
-                              ? "Activo"
-                              : "Sin enlace"}
-                      </span>
-                    </div>
-
-                    {tokenError && (
-                      <div
-                        className="client-link-feedback client-link-feedback--error"
-                        role="alert"
+                    <div className="client-form__summary-main">
+                      <span
+                        className={`clients-status clients-status--${
+                          client.active ? "active" : "inactive"
+                        }`}
                       >
-                        {tokenError}
-                      </div>
-                    )}
-
-                    {generatedToken && (
-                      <div className="client-link-generated" role="status">
-                        <label htmlFor="generated-client-link">
-                          Nuevo enlace
-                        </label>
-                        <div className="client-link-generated__controls">
-                          <input
-                            id="generated-client-link"
-                            type="text"
-                            readOnly
-                            value={`${window.location.origin}/menu/${generatedToken}`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => void handleCopyLink()}
-                          >
-                            Copiar
-                          </button>
-                        </div>
-                        <p>
-                          Guardá este enlace ahora. No volverá a mostrarse el
-                          token completo después de cerrar la ficha.
-                        </p>
-                        {copyMessage && <span>{copyMessage}</span>}
-                      </div>
-                    )}
-
+                        {client.active ? "Activo" : "Inactivo"}
+                      </span>
+                      <p>{client.phone ?? "Teléfono no informado"}</p>
+                      <p>{client.address ?? "Dirección no informada"}</p>
+                    </div>
                     <button
-                      className="client-link-rotate"
+                      className="client-form__status-action"
                       type="button"
-                      onClick={() => void handleRotateToken()}
-                      disabled={
-                        tokenLoading || tokenRotating || saving || statusSaving
-                      }
+                      onClick={() => void handleActiveToggle()}
+                      disabled={statusSaving || saving}
                     >
-                      {tokenRotating
-                        ? "Generando enlace…"
-                        : hasActiveToken
-                          ? "Rotar enlace"
-                          : "Generar enlace"}
+                      {statusSaving
+                        ? "Actualizando…"
+                        : client.active
+                          ? "Desactivar cliente"
+                          : "Activar cliente"}
                     </button>
                   </section>
+                )}
 
-                  <ClientHistorySection clientId={client.id} />
-                </>
-              )}
+                {isCreateMode && (
+                  <p className="client-form__hint">
+                    El cliente se creará activo. Después podrás completar su
+                    configuración desde la ficha.
+                  </p>
+                )}
 
-              {saveMessage && (
-                <p className="client-form__success" role="status">
-                  {saveMessage}
-                </p>
-              )}
+                <div className="client-form__fields">
+                  <label>
+                    Nombre
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={(event) =>
+                        updateField("name", event.target.value)
+                      }
+                      required
+                      autoComplete="name"
+                      autoFocus
+                    />
+                  </label>
+                  <label>
+                    Teléfono
+                    <input
+                      type="tel"
+                      value={form.phone}
+                      onChange={(event) =>
+                        updateField("phone", event.target.value)
+                      }
+                      autoComplete="tel"
+                    />
+                  </label>
+                  <label>
+                    Dirección
+                    <input
+                      type="text"
+                      value={form.address}
+                      onChange={(event) =>
+                        updateField("address", event.target.value)
+                      }
+                      autoComplete="street-address"
+                    />
+                  </label>
+                  <label>
+                    Cuidados especiales
+                    <textarea
+                      value={form.specialCare}
+                      onChange={(event) =>
+                        updateField("specialCare", event.target.value)
+                      }
+                      rows={3}
+                    />
+                  </label>
+                  <label>
+                    Observaciones
+                    <textarea
+                      value={form.notes}
+                      onChange={(event) =>
+                        updateField("notes", event.target.value)
+                      }
+                      rows={4}
+                    />
+                  </label>
+                  <label className="client-form__checkbox">
+                    <input
+                      type="checkbox"
+                      checked={form.allowsHalfPortion}
+                      onChange={(event) =>
+                        updateField("allowsHalfPortion", event.target.checked)
+                      }
+                    />
+                    <span>Permitir media vianda</span>
+                  </label>
+                </div>
 
-              <footer className="client-form__actions">
-                <button
-                  type="button"
-                  onClick={requestClose}
-                  disabled={saving || statusSaving || tokenRotating}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving || statusSaving || tokenRotating || !dirty}
-                >
-                  {saving
-                    ? isCreateMode
-                      ? "Creando…"
-                      : "Guardando…"
-                    : isCreateMode
-                      ? "Crear cliente"
-                      : "Guardar cambios"}
-                </button>
-              </footer>
-            </form>
-          )}
-        </div>
-      </aside>
-    </div>
+                {!isCreateMode && client && (
+                  <>
+                    <section
+                      className="client-drawer__section"
+                      aria-labelledby="client-link-title"
+                    >
+                      <div className="client-drawer__section-heading">
+                        <div>
+                          <h3 id="client-link-title">Enlace personal</h3>
+                          <p>
+                            El enlace anterior queda invalidado al rotarlo. El
+                            nuevo token se muestra una sola vez.
+                          </p>
+                        </div>
+                        <span className="client-link-status">
+                          {tokenLoading
+                            ? "Consultando…"
+                            : hasActiveToken === null
+                              ? "Estado desconocido"
+                              : hasActiveToken
+                                ? "Activo"
+                                : "Sin enlace"}
+                        </span>
+                      </div>
+
+                      {tokenError && (
+                        <div
+                          className="client-link-feedback client-link-feedback--error"
+                          role="alert"
+                        >
+                          {tokenError}
+                        </div>
+                      )}
+
+                      {generatedToken && (
+                        <div className="client-link-generated" role="status">
+                          <label htmlFor="generated-client-link">
+                            Nuevo enlace
+                          </label>
+                          <div className="client-link-generated__controls">
+                            <input
+                              id="generated-client-link"
+                              type="text"
+                              readOnly
+                              value={`${window.location.origin}/menu/${generatedToken}`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => void handleCopyLink()}
+                            >
+                              Copiar
+                            </button>
+                          </div>
+                          <p>
+                            Guardá este enlace ahora. No volverá a mostrarse el
+                            token completo después de cerrar la ficha.
+                          </p>
+                          {copyMessage && <span>{copyMessage}</span>}
+                        </div>
+                      )}
+
+                      <button
+                        className="client-link-rotate"
+                        type="button"
+                        onClick={() => void handleRotateToken()}
+                        disabled={
+                          tokenLoading ||
+                          tokenRotating ||
+                          saving ||
+                          statusSaving
+                        }
+                      >
+                        {tokenRotating
+                          ? "Generando enlace…"
+                          : hasActiveToken
+                            ? "Rotar enlace"
+                            : "Generar enlace"}
+                      </button>
+                    </section>
+
+                    <ClientHistorySection clientId={client.id} />
+                  </>
+                )}
+
+                {saveMessage && (
+                  <p className="client-form__success" role="status">
+                    {saveMessage}
+                  </p>
+                )}
+
+                <footer className="client-form__actions">
+                  <button
+                    type="button"
+                    onClick={() => void requestClose()}
+                    disabled={saving || statusSaving || tokenRotating}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving || statusSaving || tokenRotating || !dirty}
+                  >
+                    {saving
+                      ? isCreateMode
+                        ? "Creando…"
+                        : "Guardando…"
+                      : isCreateMode
+                        ? "Crear cliente"
+                        : "Guardar cambios"}
+                  </button>
+                </footer>
+              </form>
+            )}
+          </div>
+        </aside>
+      </div>
+      {confirmDialog}
+    </>
   );
 }
