@@ -1,0 +1,19 @@
+.client-pricing { display: grid; gap: 1rem; }
+.client-pricing__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+.client-pricing__card, .client-pricing__products { border: 1px solid var(--border-color, #d9dde5); border-radius: .8rem; padding: 1rem; background: var(--surface-subtle, #f8fafc); }
+.client-pricing__card { display: grid; gap: .7rem; }
+.client-pricing__card label, .client-pricing__products > label { display: grid; gap: .35rem; font-weight: 600; }
+.client-pricing input, .client-pricing select { width: 100%; min-height: 2.5rem; box-sizing: border-box; padding: .55rem .65rem; border: 1px solid var(--border-color, #cbd5e1); border-radius: .55rem; background: var(--surface, #fff); color: inherit; }
+.client-pricing__actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.client-pricing__actions button, .client-pricing__products > button, .client-pricing__product-list button { min-height: 2.35rem; padding: .45rem .7rem; border: 1px solid var(--border-color, #cbd5e1); border-radius: .5rem; background: var(--surface, #fff); color: inherit; cursor: pointer; }
+.client-pricing__actions button:first-child, .client-pricing__products > button { font-weight: 700; }
+.client-pricing__actions button:disabled, .client-pricing__products button:disabled { opacity: .55; cursor: not-allowed; }
+.client-pricing__card small { color: var(--muted-color, #64748b); }
+.client-pricing__products { display: grid; gap: .75rem; }
+.client-pricing__products h4 { margin: 0; }
+.client-pricing__products p { margin: 0; color: var(--muted-color, #64748b); }
+.client-pricing__product-list { display: grid; gap: .55rem; margin: .25rem 0 0; padding: 0; list-style: none; }
+.client-pricing__product-list li { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .7rem; border: 1px solid var(--border-color, #d9dde5); border-radius: .55rem; background: var(--surface, #fff); }
+.client-pricing__product-list li > div { min-width: 0; display: grid; gap: .15rem; }
+.client-pricing__product-list span { color: var(--muted-color, #64748b); }
+@media (max-width: 640px) { .client-pricing__grid { grid-template-columns: 1fr; } .client-pricing__product-list li { align-items: flex-start; flex-direction: column; } .client-pricing__product-list button { width: 100%; } }
