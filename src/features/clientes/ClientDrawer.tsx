@@ -10,6 +10,7 @@ import {
   rotateClientToken,
 } from "./services/client-tokens.service";
 import type { Client, CreateClientInput, UpdateClientInput } from "./types/client";
+import { ClientHistorySection } from "./ClientHistorySection";
 
 interface ClientDrawerProps {
   mode: "create" | "edit";
@@ -522,65 +523,69 @@ export function ClientDrawer({
               </div>
 
               {!isCreateMode && client && (
-                <section className="client-drawer__section" aria-labelledby="client-link-title">
-                  <div className="client-drawer__section-heading">
-                    <div>
-                      <h3 id="client-link-title">Enlace personal</h3>
-                      <p>
-                        El enlace anterior queda invalidado al rotarlo. El nuevo token se muestra una sola vez.
-                      </p>
-                    </div>
-                    <span className="client-link-status">
-                      {tokenLoading
-                        ? "Consultando…"
-                        : hasActiveToken === null
-                          ? "Estado desconocido"
-                          : hasActiveToken
-                            ? "Activo"
-                            : "Sin enlace"}
-                    </span>
-                  </div>
-
-                  {tokenError && (
-                    <div className="client-link-feedback client-link-feedback--error" role="alert">
-                      {tokenError}
-                    </div>
-                  )}
-
-                  {generatedToken && (
-                    <div className="client-link-generated" role="status">
-                      <label htmlFor="generated-client-link">Nuevo enlace</label>
-                      <div className="client-link-generated__controls">
-                        <input
-                          id="generated-client-link"
-                          type="text"
-                          readOnly
-                          value={`${window.location.origin}/menu/${generatedToken}`}
-                        />
-                        <button type="button" onClick={() => void handleCopyLink()}>
-                          Copiar
-                        </button>
+                <>
+                  <section className="client-drawer__section" aria-labelledby="client-link-title">
+                    <div className="client-drawer__section-heading">
+                      <div>
+                        <h3 id="client-link-title">Enlace personal</h3>
+                        <p>
+                          El enlace anterior queda invalidado al rotarlo. El nuevo token se muestra una sola vez.
+                        </p>
                       </div>
-                      <p>
-                        Guardá este enlace ahora. No volverá a mostrarse el token completo después de cerrar la ficha.
-                      </p>
-                      {copyMessage && <span>{copyMessage}</span>}
+                      <span className="client-link-status">
+                        {tokenLoading
+                          ? "Consultando…"
+                          : hasActiveToken === null
+                            ? "Estado desconocido"
+                            : hasActiveToken
+                              ? "Activo"
+                              : "Sin enlace"}
+                      </span>
                     </div>
-                  )}
 
-                  <button
-                    className="client-link-rotate"
-                    type="button"
-                    onClick={() => void handleRotateToken()}
-                    disabled={tokenLoading || tokenRotating || saving || statusSaving}
-                  >
-                    {tokenRotating
-                      ? "Generando enlace…"
-                      : hasActiveToken
-                        ? "Rotar enlace"
-                        : "Generar enlace"}
-                  </button>
-                </section>
+                    {tokenError && (
+                      <div className="client-link-feedback client-link-feedback--error" role="alert">
+                        {tokenError}
+                      </div>
+                    )}
+
+                    {generatedToken && (
+                      <div className="client-link-generated" role="status">
+                        <label htmlFor="generated-client-link">Nuevo enlace</label>
+                        <div className="client-link-generated__controls">
+                          <input
+                            id="generated-client-link"
+                            type="text"
+                            readOnly
+                            value={`${window.location.origin}/menu/${generatedToken}`}
+                          />
+                          <button type="button" onClick={() => void handleCopyLink()}>
+                            Copiar
+                          </button>
+                        </div>
+                        <p>
+                          Guardá este enlace ahora. No volverá a mostrarse el token completo después de cerrar la ficha.
+                        </p>
+                        {copyMessage && <span>{copyMessage}</span>}
+                      </div>
+                    )}
+
+                    <button
+                      className="client-link-rotate"
+                      type="button"
+                      onClick={() => void handleRotateToken()}
+                      disabled={tokenLoading || tokenRotating || saving || statusSaving}
+                    >
+                      {tokenRotating
+                        ? "Generando enlace…"
+                        : hasActiveToken
+                          ? "Rotar enlace"
+                          : "Generar enlace"}
+                    </button>
+                  </section>
+
+                  <ClientHistorySection clientId={client.id} />
+                </>
               )}
 
               {saveMessage && (
