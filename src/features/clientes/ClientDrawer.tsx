@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { createClient, getClient, updateClient } from "./services/clients.service";
+import {
+  createClient,
+  getClient,
+  setClientActive,
+  updateClient,
+} from "./services/clients.service";
+import {
+  getActiveTokenStatus,
+  rotateClientToken,
+} from "./services/client-tokens.service";
 import type { Client, CreateClientInput, UpdateClientInput } from "./types/client";
 
 interface ClientDrawerProps {
@@ -62,8 +71,15 @@ export function ClientDrawer({
   const [form, setForm] = useState<ClientFormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [statusSaving, setStatusSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [hasActiveToken, setHasActiveToken] = useState<boolean | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
+  const [tokenRotating, setTokenRotating] = useState(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [generatedToken, setGeneratedToken] = useState<string | null>(null);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
   const isCreateMode = mode === "create";
   const dirty = isCreateMode
@@ -84,6 +100,12 @@ export function ClientDrawer({
       setError(null);
       setSaveMessage(null);
       setLoading(false);
+      setHasActiveToken(null);
+      setTokenLoading(false);
+      setTokenError(null);
+      setTokenRotating(false);
+      setGeneratedToken(null);
+      setCopyMessage(null);
       return;
     }
 
@@ -93,6 +115,12 @@ export function ClientDrawer({
       setError(null);
       setSaveMessage(null);
       setLoading(false);
+      setHasActiveToken(null);
+      setTokenLoading(false);
+      setTokenError(null);
+      setTokenRotating(false);
+      setGeneratedToken(null);
+      setCopyMessage(null);
       return;
     }
 
@@ -102,6 +130,12 @@ export function ClientDrawer({
     setForm(EMPTY_FORM);
     setError(null);
     setSaveMessage(null);
+    setHasActiveToken(null);
+    setTokenLoading(true);
+    setTokenError(null);
+    setTokenRotating(false);
+    setGeneratedToken(null);
+    setCopyMessage(null);
 
     void getClient(clientId)
       .then((result) => {
@@ -122,6 +156,27 @@ export function ClientDrawer({
       .finally(() => {
         if (!cancelled) {
           setLoading(false);
+        }
+      });
+
+    void getActiveTokenStatus(clientId)
+      .then((status) => {
+        if (!cancelled) {
+          setHasActiveToken(status.hasActiveToken);
+        }
+      })
+      .catch((tokenStatusError: unknown) => {
+        if (!cancelled) {
+          setTokenError(
+            tokenStatusError instanceof Error
+              ? tokenStatusError.message
+              : "No se pudo consultar el estado del enlace personal.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setTokenLoading(false);
         }
       });
 
@@ -238,6 +293,88 @@ export function ClientDrawer({
     }
   }
 
+  async function handleActiveToggle() {
+    if (!client || statusSaving) {
+      return;
+    }
+
+    const nextActive = !client.active;
+    const message = nextActive
+      ? "¿Activar este cliente? Volverá a ser incluido en futuras semanas activadas."
+      : "¿Desactivar este cliente? Su historial se conservará y dejará de incluirse en futuras semanas activadas.";
+
+    if (!window.confirm(message)) {
+      return;
+    }
+
+    setStatusSaving(true);
+    setError(null);
+    setSaveMessage(null);
+
+    try {
+      const updated = await setClientActive(client.id, nextActive);
+      setClient(updated);
+      onSaved(updated);
+      setSaveMessage(nextActive ? "Cliente activado." : "Cliente desactivado.");
+    } catch (statusError: unknown) {
+      setError(
+        statusError instanceof Error
+          ? statusError.message
+          : "No se pudo actualizar el estado del cliente.",
+      );
+    } finally {
+      setStatusSaving(false);
+    }
+  }
+
+  async function handleRotateToken() {
+    if (!client || tokenRotating) {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "Al rotar el enlace, el enlace anterior dejará de funcionar inmediatamente. ¿Continuar?",
+      )
+    ) {
+      return;
+    }
+
+    setTokenRotating(true);
+    setTokenError(null);
+    setGeneratedToken(null);
+    setCopyMessage(null);
+
+    try {
+      const result = await rotateClientToken(client.id);
+      setGeneratedToken(result.token);
+      setHasActiveToken(true);
+    } catch (rotationError: unknown) {
+      setTokenError(
+        rotationError instanceof Error
+          ? rotationError.message
+          : "No se pudo rotar el enlace personal.",
+      );
+    } finally {
+      setTokenRotating(false);
+    }
+  }
+
+  async function handleCopyLink() {
+    if (!generatedToken) {
+      return;
+    }
+
+    const link = `${window.location.origin}/menu/${generatedToken}`;
+
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopyMessage("Enlace copiado.");
+    } catch {
+      setCopyMessage("No se pudo copiar automáticamente. Copiá el enlace manualmente.");
+    }
+  }
+
   const open = isCreateMode || clientId !== null;
 
   if (!open) {
@@ -292,20 +429,34 @@ export function ClientDrawer({
           {!loading && (isCreateMode || client) && (
             <form className="client-form" onSubmit={handleSubmit}>
               {client && (
-                <div
+                <section
                   className="client-form__summary"
                   aria-label="Datos básicos del cliente"
                 >
-                  <span
-                    className={`clients-status clients-status--${
-                      client.active ? "active" : "inactive"
-                    }`}
+                  <div className="client-form__summary-main">
+                    <span
+                      className={`clients-status clients-status--${
+                        client.active ? "active" : "inactive"
+                      }`}
+                    >
+                      {client.active ? "Activo" : "Inactivo"}
+                    </span>
+                    <p>{client.phone ?? "Teléfono no informado"}</p>
+                    <p>{client.address ?? "Dirección no informada"}</p>
+                  </div>
+                  <button
+                    className="client-form__status-action"
+                    type="button"
+                    onClick={() => void handleActiveToggle()}
+                    disabled={statusSaving || saving}
                   >
-                    {client.active ? "Activo" : "Inactivo"}
-                  </span>
-                  <p>{client.phone ?? "Teléfono no informado"}</p>
-                  <p>{client.address ?? "Dirección no informada"}</p>
-                </div>
+                    {statusSaving
+                      ? "Actualizando…"
+                      : client.active
+                        ? "Desactivar cliente"
+                        : "Activar cliente"}
+                  </button>
+                </section>
               )}
 
               {isCreateMode && (
@@ -370,6 +521,68 @@ export function ClientDrawer({
                 </label>
               </div>
 
+              {!isCreateMode && client && (
+                <section className="client-drawer__section" aria-labelledby="client-link-title">
+                  <div className="client-drawer__section-heading">
+                    <div>
+                      <h3 id="client-link-title">Enlace personal</h3>
+                      <p>
+                        El enlace anterior queda invalidado al rotarlo. El nuevo token se muestra una sola vez.
+                      </p>
+                    </div>
+                    <span className="client-link-status">
+                      {tokenLoading
+                        ? "Consultando…"
+                        : hasActiveToken === null
+                          ? "Estado desconocido"
+                          : hasActiveToken
+                            ? "Activo"
+                            : "Sin enlace"}
+                    </span>
+                  </div>
+
+                  {tokenError && (
+                    <div className="client-link-feedback client-link-feedback--error" role="alert">
+                      {tokenError}
+                    </div>
+                  )}
+
+                  {generatedToken && (
+                    <div className="client-link-generated" role="status">
+                      <label htmlFor="generated-client-link">Nuevo enlace</label>
+                      <div className="client-link-generated__controls">
+                        <input
+                          id="generated-client-link"
+                          type="text"
+                          readOnly
+                          value={`${window.location.origin}/menu/${generatedToken}`}
+                        />
+                        <button type="button" onClick={() => void handleCopyLink()}>
+                          Copiar
+                        </button>
+                      </div>
+                      <p>
+                        Guardá este enlace ahora. No volverá a mostrarse el token completo después de cerrar la ficha.
+                      </p>
+                      {copyMessage && <span>{copyMessage}</span>}
+                    </div>
+                  )}
+
+                  <button
+                    className="client-link-rotate"
+                    type="button"
+                    onClick={() => void handleRotateToken()}
+                    disabled={tokenLoading || tokenRotating || saving || statusSaving}
+                  >
+                    {tokenRotating
+                      ? "Generando enlace…"
+                      : hasActiveToken
+                        ? "Rotar enlace"
+                        : "Generar enlace"}
+                  </button>
+                </section>
+              )}
+
               {saveMessage && (
                 <p className="client-form__success" role="status">
                   {saveMessage}
@@ -377,10 +590,10 @@ export function ClientDrawer({
               )}
 
               <footer className="client-form__actions">
-                <button type="button" onClick={requestClose} disabled={saving}>
+                <button type="button" onClick={requestClose} disabled={saving || statusSaving || tokenRotating}>
                   Cancelar
                 </button>
-                <button type="submit" disabled={saving || !dirty}>
+                <button type="submit" disabled={saving || statusSaving || tokenRotating || !dirty}>
                   {saving
                     ? isCreateMode
                       ? "Creando…"
