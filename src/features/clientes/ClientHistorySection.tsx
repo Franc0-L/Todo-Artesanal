@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getClientHistory } from "../historial/services/history.service";
 import type { ClientHistoryEntry } from "../historial/types/client-history";
-import type { Modality } from "../../types/domain";
+import type { Modality, WeekStatus } from "../../types/domain";
 
 interface ClientHistorySectionProps {
   clientId: string;
@@ -13,6 +13,12 @@ const MODALITY_LABELS: Record<Modality, string> = {
   general: "General",
   opcional: "Opcional",
   media_vianda: "Media vianda",
+};
+
+const WEEK_STATUS_LABELS: Record<WeekStatus, string> = {
+  draft: "Borrador",
+  active: "Activa",
+  closed: "Cerrada",
 };
 
 function formatDate(value: string): string {
@@ -54,7 +60,9 @@ function HistoryWeek({ entry }: { entry: ClientHistoryEntry }) {
           <h4>
             {formatDate(entry.week.startDate)} — {formatDate(entry.week.endDate)}
           </h4>
-          <span className="client-history__status">{entry.week.status}</span>
+          <span className="client-history__status">
+            {WEEK_STATUS_LABELS[entry.week.status]}
+          </span>
         </div>
         <strong>{formatCurrency(entry.totalAmount)}</strong>
       </header>
@@ -90,7 +98,11 @@ function HistoryWeek({ entry }: { entry: ClientHistoryEntry }) {
             {entry.cancellations.map((cancellation) => (
               <li key={cancellation.id}>
                 <strong>{dayLabel(cancellation.weekDay?.dayOfWeek ?? 0)}</strong>
-                <span>{cancellation.weekDay ? formatDate(cancellation.weekDay.date) : "Fecha no disponible"}</span>
+                <span>
+                  {cancellation.weekDay
+                    ? formatDate(cancellation.weekDay.date)
+                    : "Fecha no disponible"}
+                </span>
               </li>
             ))}
           </ul>
@@ -110,6 +122,7 @@ export function ClientHistorySection({ clientId }: ClientHistorySectionProps) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -144,7 +157,7 @@ export function ClientHistorySection({ clientId }: ClientHistorySectionProps) {
     return () => {
       cancelled = true;
     };
-  }, [clientId, page]);
+  }, [clientId, page, reloadToken]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -163,14 +176,16 @@ export function ClientHistorySection({ clientId }: ClientHistorySectionProps) {
       {!loading && error && (
         <div className="client-history__feedback client-history__feedback--error" role="alert">
           <p>{error}</p>
-          <button type="button" onClick={() => setPage(page)}>
+          <button type="button" onClick={() => setReloadToken((current) => current + 1)}>
             Reintentar
           </button>
         </div>
       )}
 
       {!loading && !error && entries.length === 0 && (
-        <p className="client-history__feedback">Este cliente todavía no tiene historial registrado.</p>
+        <p className="client-history__feedback">
+          Este cliente todavía no tiene historial registrado.
+        </p>
       )}
 
       {!loading && !error && entries.length > 0 && (
