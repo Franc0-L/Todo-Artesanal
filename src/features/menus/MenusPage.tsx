@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { navigate } from "../../app/routes";
 import { MenuDrawer } from "./MenuDrawer";
 import { listMenus } from "./services/menus.service";
 import type { Menu, MenuWithCurrentVersion } from "./types/menu";
@@ -33,7 +32,13 @@ export function MenusPage() {
   useEffect(() => { void load(); }, [load]);
 
   function updateMenu(menu: Menu) { setItems(current => current.map(item => item.id === menu.id ? { ...item, active: menu.active } : item)); }
-  function created(menu: MenuWithCurrentVersion) { setPage(1); setDrawer({ mode: "edit", id: menu.id }); void load(); }
+  function created(menu: MenuWithCurrentVersion) {
+    const newItem: MenuListItem = { id: menu.id, name: menu.currentVersion?.name ?? null, itemCount: menu.currentVersion?.items.length ?? 0, active: menu.active, createdAt: menu.createdAt };
+    setItems(current => [newItem, ...current].slice(0, pageSize));
+    setTotal(totalCount => totalCount + 1);
+    setPage(1);
+    setDrawer({ mode: "edit", id: menu.id });
+  }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
