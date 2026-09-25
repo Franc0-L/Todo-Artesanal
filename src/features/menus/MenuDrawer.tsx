@@ -7,7 +7,8 @@ import { createMenu, getMenu, setMenuActive } from "./services/menus.service";
 import { createMenuVersion, listMenuVersions } from "./services/menu-versions.service";
 import type { Menu, MenuWithCurrentVersion } from "./types/menu";
 import type { MenuVersionSummary } from "./types/menu-version";
-import type { MenuItemRole, MenuVersionItem } from "./types/menu-version-item";
+import type { MenuVersionItem } from "./types/menu-version-item";
+import type { MenuItemRole } from "../../types/domain";
 
 interface Props { mode: "create" | "edit"; menuId: string | null; onClose: () => void; onCreated: (menu: MenuWithCurrentVersion) => void; onSaved: (menu: Menu) => void; }
 interface FormState { name: string; price: string; items: MenuVersionItem[]; }
