@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { getClient, updateClient } from "./services/clients.service";
-import type { Client, UpdateClientInput } from "./types/client";
+import { createClient, getClient, updateClient } from "./services/clients.service";
+import type { Client, CreateClientInput, UpdateClientInput } from "./types/client";
 
 interface ClientDrawerProps {
+  mode: "create" | "edit";
   clientId: string | null;
   onClose: () => void;
+  onCreated: (client: Client) => void;
   onSaved: (client: Client) => void;
 }
 
@@ -37,7 +39,24 @@ function toFormState(client: Client): ClientFormState {
   };
 }
 
-export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) {
+function hasCreateChanges(form: ClientFormState): boolean {
+  return (
+    form.name.trim() !== "" ||
+    form.phone.trim() !== "" ||
+    form.address.trim() !== "" ||
+    form.notes.trim() !== "" ||
+    form.specialCare.trim() !== "" ||
+    form.allowsHalfPortion
+  );
+}
+
+export function ClientDrawer({
+  mode,
+  clientId,
+  onClose,
+  onCreated,
+  onSaved,
+}: ClientDrawerProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [client, setClient] = useState<Client | null>(null);
   const [form, setForm] = useState<ClientFormState>(EMPTY_FORM);
@@ -46,21 +65,34 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  const dirty = client
-    ? form.name !== client.name ||
-      form.phone !== (client.phone ?? "") ||
-      form.address !== (client.address ?? "") ||
-      form.notes !== (client.notes ?? "") ||
-      form.specialCare !== (client.specialCare ?? "") ||
-      form.allowsHalfPortion !== client.allowsHalfPortion
-    : false;
+  const isCreateMode = mode === "create";
+  const dirty = isCreateMode
+    ? hasCreateChanges(form)
+    : client
+      ? form.name !== client.name ||
+        form.phone !== (client.phone ?? "") ||
+        form.address !== (client.address ?? "") ||
+        form.notes !== (client.notes ?? "") ||
+        form.specialCare !== (client.specialCare ?? "") ||
+        form.allowsHalfPortion !== client.allowsHalfPortion
+      : false;
 
   useEffect(() => {
+    if (isCreateMode) {
+      setClient(null);
+      setForm(EMPTY_FORM);
+      setError(null);
+      setSaveMessage(null);
+      setLoading(false);
+      return;
+    }
+
     if (!clientId) {
       setClient(null);
       setForm(EMPTY_FORM);
       setError(null);
       setSaveMessage(null);
+      setLoading(false);
       return;
     }
 
@@ -96,10 +128,10 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
     return () => {
       cancelled = true;
     };
-  }, [clientId]);
+  }, [clientId, isCreateMode]);
 
   useEffect(() => {
-    if (!clientId) {
+    if (!isCreateMode && !clientId) {
       return;
     }
 
@@ -110,10 +142,10 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [clientId]);
+  }, [clientId, isCreateMode]);
 
   useEffect(() => {
-    if (!clientId) {
+    if (!isCreateMode && !clientId) {
       return;
     }
 
@@ -131,7 +163,7 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [clientId, dirty, onClose]);
+  }, [clientId, dirty, isCreateMode, onClose]);
 
   function requestClose() {
     if (dirty && !window.confirm("Hay cambios sin guardar. ¿Cerrar la ficha?")) {
@@ -152,7 +184,7 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!client || saving) {
+    if (saving) {
       return;
     }
 
@@ -160,16 +192,34 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
     setError(null);
     setSaveMessage(null);
 
-    const input: UpdateClientInput = {
-      name: form.name,
-      phone: form.phone,
-      address: form.address,
-      notes: form.notes,
-      specialCare: form.specialCare,
-      allowsHalfPortion: form.allowsHalfPortion,
-    };
-
     try {
+      if (isCreateMode) {
+        const input: CreateClientInput = {
+          name: form.name,
+          phone: form.phone,
+          address: form.address,
+          notes: form.notes,
+          specialCare: form.specialCare,
+          allowsHalfPortion: form.allowsHalfPortion,
+        };
+        const created = await createClient(input);
+        onCreated(created);
+        return;
+      }
+
+      if (!client) {
+        return;
+      }
+
+      const input: UpdateClientInput = {
+        name: form.name,
+        phone: form.phone,
+        address: form.address,
+        notes: form.notes,
+        specialCare: form.specialCare,
+        allowsHalfPortion: form.allowsHalfPortion,
+      };
+
       const updated = await updateClient(client.id, input);
       setClient(updated);
       setForm(toFormState(updated));
@@ -179,14 +229,18 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "No se pudieron guardar los cambios.",
+          : isCreateMode
+            ? "No se pudo crear el cliente."
+            : "No se pudieron guardar los cambios.",
       );
     } finally {
       setSaving(false);
     }
   }
 
-  if (!clientId) {
+  const open = isCreateMode || clientId !== null;
+
+  if (!open) {
     return null;
   }
 
@@ -201,15 +255,23 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
       >
         <header className="client-drawer__header">
           <div>
-            <p className="clients-page__eyebrow">Ficha de cliente</p>
-            <h2 id="client-drawer-title">{client?.name ?? "Cliente"}</h2>
+            <p className="clients-page__eyebrow">
+              {isCreateMode ? "Nuevo cliente" : "Ficha de cliente"}
+            </p>
+            <h2 id="client-drawer-title">
+              {isCreateMode ? "Crear cliente" : client?.name ?? "Cliente"}
+            </h2>
           </div>
           <button
             ref={closeButtonRef}
             className="client-drawer__close"
             type="button"
             onClick={requestClose}
-            aria-label="Cerrar ficha del cliente"
+            aria-label={
+              isCreateMode
+                ? "Cerrar creación de cliente"
+                : "Cerrar ficha del cliente"
+            }
           >
             ×
           </button>
@@ -227,15 +289,30 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
             </div>
           )}
 
-          {!loading && client && (
+          {!loading && (isCreateMode || client) && (
             <form className="client-form" onSubmit={handleSubmit}>
-              <div className="client-form__summary" aria-label="Datos básicos del cliente">
-                <span className={`clients-status clients-status--${client.active ? "active" : "inactive"}`}>
-                  {client.active ? "Activo" : "Inactivo"}
-                </span>
-                <p>{client.phone ?? "Teléfono no informado"}</p>
-                <p>{client.address ?? "Dirección no informada"}</p>
-              </div>
+              {client && (
+                <div
+                  className="client-form__summary"
+                  aria-label="Datos básicos del cliente"
+                >
+                  <span
+                    className={`clients-status clients-status--${
+                      client.active ? "active" : "inactive"
+                    }`}
+                  >
+                    {client.active ? "Activo" : "Inactivo"}
+                  </span>
+                  <p>{client.phone ?? "Teléfono no informado"}</p>
+                  <p>{client.address ?? "Dirección no informada"}</p>
+                </div>
+              )}
+
+              {isCreateMode && (
+                <p className="client-form__hint">
+                  El cliente se creará activo. Después podrás completar su configuración desde la ficha.
+                </p>
+              )}
 
               <div className="client-form__fields">
                 <label>
@@ -246,6 +323,7 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
                     onChange={(event) => updateField("name", event.target.value)}
                     required
                     autoComplete="name"
+                    autoFocus
                   />
                 </label>
                 <label>
@@ -292,14 +370,24 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
                 </label>
               </div>
 
-              {saveMessage && <p className="client-form__success" role="status">{saveMessage}</p>}
+              {saveMessage && (
+                <p className="client-form__success" role="status">
+                  {saveMessage}
+                </p>
+              )}
 
               <footer className="client-form__actions">
                 <button type="button" onClick={requestClose} disabled={saving}>
-                  Cerrar
+                  Cancelar
                 </button>
                 <button type="submit" disabled={saving || !dirty}>
-                  {saving ? "Guardando…" : "Guardar cambios"}
+                  {saving
+                    ? isCreateMode
+                      ? "Creando…"
+                      : "Guardando…"
+                    : isCreateMode
+                      ? "Crear cliente"
+                      : "Guardar cambios"}
                 </button>
               </footer>
             </form>
