@@ -125,6 +125,10 @@ export function ClientHistorySection({ clientId }: ClientHistorySectionProps) {
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
+    setPage(1);
+  }, [clientId]);
+
+  useEffect(() => {
     let cancelled = false;
 
     setLoading(true);
