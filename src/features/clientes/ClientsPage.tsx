@@ -16,6 +16,7 @@ export function ClientsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +47,13 @@ export function ClientsPage() {
 
   const handleCloseDrawer = useCallback(() => {
     setSelectedClientId(null);
+    setCreateDrawerOpen(false);
+  }, []);
+
+  const handleClientCreated = useCallback((created: Client) => {
+    setCreateDrawerOpen(false);
+    setSelectedClientId(created.id);
+    setPage(1);
   }, []);
 
   const handleClientSaved = useCallback((updated: Client) => {
@@ -84,11 +92,25 @@ export function ClientsPage() {
   return (
     <section className="clients-page" aria-labelledby="clients-title">
       <header className="clients-page__header">
-        <p className="clients-page__eyebrow">Administración</p>
-        <h1 id="clients-title">Clientes</h1>
-        <p className="clients-page__description">
-          Gestioná los clientes y accedé a su ficha cuando sea necesario.
-        </p>
+        <div className="clients-page__heading-row">
+          <div>
+            <p className="clients-page__eyebrow">Administración</p>
+            <h1 id="clients-title">Clientes</h1>
+            <p className="clients-page__description">
+              Gestioná los clientes y accedé a su ficha cuando sea necesario.
+            </p>
+          </div>
+          <button
+            className="clients-primary-action"
+            type="button"
+            onClick={() => {
+              setSelectedClientId(null);
+              setCreateDrawerOpen(true);
+            }}
+          >
+            Nuevo cliente
+          </button>
+        </div>
       </header>
 
       <div className="clients-toolbar">
@@ -206,8 +228,10 @@ export function ClientsPage() {
       )}
 
       <ClientDrawer
-        clientId={selectedClientId}
+        mode={createDrawerOpen ? "create" : "edit"}
+        clientId={createDrawerOpen ? null : selectedClientId}
         onClose={handleCloseDrawer}
+        onCreated={handleClientCreated}
         onSaved={handleClientSaved}
       />
     </section>
