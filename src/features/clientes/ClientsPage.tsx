@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ClientDrawer } from "./ClientDrawer";
 import { listClients } from "./services/clients.service";
+import type { Client } from "./types/client";
 import type { ClientListItem } from "./types/client-list";
 import "./clients.css";
 
@@ -42,6 +42,22 @@ export function ClientsPage() {
 
   const handleCloseDrawer = useCallback(() => {
     setSelectedClientId(null);
+  }, []);
+
+  const handleClientSaved = useCallback((updated: Client) => {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === updated.id
+          ? {
+              ...item,
+              name: updated.name,
+              phone: updated.phone,
+              address: updated.address,
+              active: updated.active,
+            }
+          : item,
+      ),
+    );
   }, []);
 
   useEffect(() => {
@@ -103,23 +119,49 @@ export function ClientsPage() {
             <p>{search || statusFilter !== "all" ? "Probá cambiar la búsqueda o el filtro." : "Todavía no hay clientes registrados."}</p>
           </div>
         ) : (
-          <table className="clients-table">
-            <caption className="visually-hidden">Listado de clientes</caption>
-            <thead><tr><th scope="col">Nombre</th><th scope="col">Teléfono</th><th scope="col">Dirección</th><th scope="col">Estado</th></tr></thead>
-            <tbody>
+          <>
+            <table className="clients-table">
+              <caption className="visually-hidden">Listado de clientes</caption>
+              <thead><tr><th scope="col">Nombre</th><th scope="col">Teléfono</th><th scope="col">Dirección</th><th scope="col">Estado</th></tr></thead>
+              <tbody>
+                {items.map((client) => (
+                  <tr
+                    key={client.id}
+                    className="client-row"
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Abrir ficha de ${client.name}`}
+                    onClick={() => setSelectedClientId(client.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedClientId(client.id);
+                      }
+                    }}
+                  >
+                    <td>{client.name}</td>
+                    <td>{client.phone ?? "—"}</td>
+                    <td>{client.address ?? "—"}</td>
+                    <td><span className={`clients-status clients-status--${client.active ? "active" : "inactive"}`}>{client.active ? "Activo" : "Inactivo"}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="clients-cards" aria-label="Listado de clientes">
               {items.map((client) => (
-                <tr key={client.id}>
-                  <td>
-                    <button className="client-name-button" type="button" onClick={() => setSelectedClientId(client.id)}>
-                      {client.name}
-                    </button>
-                  </td>
-                  <td>{client.phone ?? "—"}</td><td>{client.address ?? "—"}</td>
-                  <td><span className={`clients-status clients-status--${client.active ? "active" : "inactive"}`}>{client.active ? "Activo" : "Inactivo"}</span></td>
-                </tr>
+                <button key={client.id} className="client-card" type="button" onClick={() => setSelectedClientId(client.id)}>
+                  <span className="client-card__header">
+                    <strong>{client.name}</strong>
+                    <span className={`clients-status clients-status--${client.active ? "active" : "inactive"}`}>{client.active ? "Activo" : "Inactivo"}</span>
+                  </span>
+                  <span>{client.phone ?? "Teléfono no informado"}</span>
+                  <span>{client.address ?? "Dirección no informada"}</span>
+                  <span className="client-card__action">Ver ficha →</span>
+                </button>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -133,7 +175,7 @@ export function ClientsPage() {
         </nav>
       )}
 
-      <ClientDrawer clientId={selectedClientId} onClose={handleCloseDrawer} />
+      <ClientDrawer clientId={selectedClientId} onClose={handleCloseDrawer} onSaved={handleClientSaved} />
     </section>
   );
 }
