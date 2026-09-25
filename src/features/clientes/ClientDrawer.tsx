@@ -9,7 +9,11 @@ import {
   getActiveTokenStatus,
   rotateClientToken,
 } from "./services/client-tokens.service";
-import type { Client, CreateClientInput, UpdateClientInput } from "./types/client";
+import type {
+  Client,
+  CreateClientInput,
+  UpdateClientInput,
+} from "./types/client";
 import { ClientHistorySection } from "./ClientHistorySection";
 
 interface ClientDrawerProps {
@@ -210,7 +214,10 @@ export function ClientDrawer({
         return;
       }
 
-      if (dirty && !window.confirm("Hay cambios sin guardar. ¿Cerrar la ficha?")) {
+      if (
+        dirty &&
+        !window.confirm("Hay cambios sin guardar. ¿Cerrar la ficha?")
+      ) {
         return;
       }
 
@@ -222,7 +229,10 @@ export function ClientDrawer({
   }, [clientId, dirty, isCreateMode, onClose]);
 
   function requestClose() {
-    if (dirty && !window.confirm("Hay cambios sin guardar. ¿Cerrar la ficha?")) {
+    if (
+      dirty &&
+      !window.confirm("Hay cambios sin guardar. ¿Cerrar la ficha?")
+    ) {
       return;
     }
 
@@ -372,7 +382,9 @@ export function ClientDrawer({
       await navigator.clipboard.writeText(link);
       setCopyMessage("Enlace copiado.");
     } catch {
-      setCopyMessage("No se pudo copiar automáticamente. Copiá el enlace manualmente.");
+      setCopyMessage(
+        "No se pudo copiar automáticamente. Copiá el enlace manualmente.",
+      );
     }
   }
 
@@ -397,7 +409,7 @@ export function ClientDrawer({
               {isCreateMode ? "Nuevo cliente" : "Ficha de cliente"}
             </p>
             <h2 id="client-drawer-title">
-              {isCreateMode ? "Crear cliente" : client?.name ?? "Cliente"}
+              {isCreateMode ? "Crear cliente" : (client?.name ?? "Cliente")}
             </h2>
           </div>
           <button
@@ -419,7 +431,10 @@ export function ClientDrawer({
           {loading && <p className="clients-feedback">Cargando ficha…</p>}
 
           {!loading && error && (
-            <div className="clients-feedback clients-feedback--error" role="alert">
+            <div
+              className="clients-feedback clients-feedback--error"
+              role="alert"
+            >
               <p>{error}</p>
               <button type="button" onClick={() => setError(null)}>
                 Cerrar aviso
@@ -462,7 +477,8 @@ export function ClientDrawer({
 
               {isCreateMode && (
                 <p className="client-form__hint">
-                  El cliente se creará activo. Después podrás completar su configuración desde la ficha.
+                  El cliente se creará activo. Después podrás completar su
+                  configuración desde la ficha.
                 </p>
               )}
 
@@ -472,7 +488,9 @@ export function ClientDrawer({
                   <input
                     type="text"
                     value={form.name}
-                    onChange={(event) => updateField("name", event.target.value)}
+                    onChange={(event) =>
+                      updateField("name", event.target.value)
+                    }
                     required
                     autoComplete="name"
                     autoFocus
@@ -483,7 +501,9 @@ export function ClientDrawer({
                   <input
                     type="tel"
                     value={form.phone}
-                    onChange={(event) => updateField("phone", event.target.value)}
+                    onChange={(event) =>
+                      updateField("phone", event.target.value)
+                    }
                     autoComplete="tel"
                   />
                 </label>
@@ -492,7 +512,9 @@ export function ClientDrawer({
                   <input
                     type="text"
                     value={form.address}
-                    onChange={(event) => updateField("address", event.target.value)}
+                    onChange={(event) =>
+                      updateField("address", event.target.value)
+                    }
                     autoComplete="street-address"
                   />
                 </label>
@@ -500,7 +522,9 @@ export function ClientDrawer({
                   Cuidados especiales
                   <textarea
                     value={form.specialCare}
-                    onChange={(event) => updateField("specialCare", event.target.value)}
+                    onChange={(event) =>
+                      updateField("specialCare", event.target.value)
+                    }
                     rows={3}
                   />
                 </label>
@@ -508,7 +532,9 @@ export function ClientDrawer({
                   Observaciones
                   <textarea
                     value={form.notes}
-                    onChange={(event) => updateField("notes", event.target.value)}
+                    onChange={(event) =>
+                      updateField("notes", event.target.value)
+                    }
                     rows={4}
                   />
                 </label>
@@ -516,7 +542,9 @@ export function ClientDrawer({
                   <input
                     type="checkbox"
                     checked={form.allowsHalfPortion}
-                    onChange={(event) => updateField("allowsHalfPortion", event.target.checked)}
+                    onChange={(event) =>
+                      updateField("allowsHalfPortion", event.target.checked)
+                    }
                   />
                   <span>Permitir media vianda</span>
                 </label>
@@ -524,12 +552,16 @@ export function ClientDrawer({
 
               {!isCreateMode && client && (
                 <>
-                  <section className="client-drawer__section" aria-labelledby="client-link-title">
+                  <section
+                    className="client-drawer__section"
+                    aria-labelledby="client-link-title"
+                  >
                     <div className="client-drawer__section-heading">
                       <div>
                         <h3 id="client-link-title">Enlace personal</h3>
                         <p>
-                          El enlace anterior queda invalidado al rotarlo. El nuevo token se muestra una sola vez.
+                          El enlace anterior queda invalidado al rotarlo. El
+                          nuevo token se muestra una sola vez.
                         </p>
                       </div>
                       <span className="client-link-status">
@@ -544,14 +576,19 @@ export function ClientDrawer({
                     </div>
 
                     {tokenError && (
-                      <div className="client-link-feedback client-link-feedback--error" role="alert">
+                      <div
+                        className="client-link-feedback client-link-feedback--error"
+                        role="alert"
+                      >
                         {tokenError}
                       </div>
                     )}
 
                     {generatedToken && (
                       <div className="client-link-generated" role="status">
-                        <label htmlFor="generated-client-link">Nuevo enlace</label>
+                        <label htmlFor="generated-client-link">
+                          Nuevo enlace
+                        </label>
                         <div className="client-link-generated__controls">
                           <input
                             id="generated-client-link"
@@ -559,12 +596,16 @@ export function ClientDrawer({
                             readOnly
                             value={`${window.location.origin}/menu/${generatedToken}`}
                           />
-                          <button type="button" onClick={() => void handleCopyLink()}>
+                          <button
+                            type="button"
+                            onClick={() => void handleCopyLink()}
+                          >
                             Copiar
                           </button>
                         </div>
                         <p>
-                          Guardá este enlace ahora. No volverá a mostrarse el token completo después de cerrar la ficha.
+                          Guardá este enlace ahora. No volverá a mostrarse el
+                          token completo después de cerrar la ficha.
                         </p>
                         {copyMessage && <span>{copyMessage}</span>}
                       </div>
@@ -574,7 +615,9 @@ export function ClientDrawer({
                       className="client-link-rotate"
                       type="button"
                       onClick={() => void handleRotateToken()}
-                      disabled={tokenLoading || tokenRotating || saving || statusSaving}
+                      disabled={
+                        tokenLoading || tokenRotating || saving || statusSaving
+                      }
                     >
                       {tokenRotating
                         ? "Generando enlace…"
@@ -595,10 +638,17 @@ export function ClientDrawer({
               )}
 
               <footer className="client-form__actions">
-                <button type="button" onClick={requestClose} disabled={saving || statusSaving || tokenRotating}>
+                <button
+                  type="button"
+                  onClick={requestClose}
+                  disabled={saving || statusSaving || tokenRotating}
+                >
                   Cancelar
                 </button>
-                <button type="submit" disabled={saving || statusSaving || tokenRotating || !dirty}>
+                <button
+                  type="submit"
+                  disabled={saving || statusSaving || tokenRotating || !dirty}
+                >
                   {saving
                     ? isCreateMode
                       ? "Creando…"

@@ -1,6 +1,9 @@
 import type { AdminRoutePath } from "../../app/routes";
 
-const sectionCopy: Record<AdminRoutePath, { title: string; description: string }> = {
+const sectionCopy: Record<
+  AdminRoutePath,
+  { title: string; description: string }
+> = {
   "/admin": {
     title: "Panel administrativo",
     description: "Resumen y acceso a la gestión de Todo Artesanal.",
@@ -27,7 +30,8 @@ const sectionCopy: Record<AdminRoutePath, { title: string; description: string }
   },
   "/admin/historial": {
     title: "Historial",
-    description: "Consulta de hechos históricos sin reinterpretar la configuración actual.",
+    description:
+      "Consulta de hechos históricos sin reinterpretar la configuración actual.",
   },
 };
 

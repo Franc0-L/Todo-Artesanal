@@ -5,6 +5,7 @@ import { AdminLoginPage } from "../features/auth/AdminLoginPage";
 import { useAuth } from "../features/auth/AuthProvider";
 import { AdminShell } from "../features/admin/AdminShell";
 import { ClientsPage } from "../features/clientes/ClientsPage";
+import { PlatosPage } from "../features/platos/PlatosPage";
 import { resolveRoute } from "./routes";
 
 function subscribeToLocation(onChange: () => void) {
@@ -20,7 +21,10 @@ function getServerLocation() {
   return "/";
 }
 
-type AdminPath = Extract<ReturnType<typeof resolveRoute>, { kind: "admin" }>['path'];
+type AdminPath = Extract<
+  ReturnType<typeof resolveRoute>,
+  { kind: "admin" }
+>["path"];
 
 function AdminRoute({ path }: { path: AdminPath }) {
   const { status, error } = useAuth();
@@ -37,7 +41,9 @@ function AdminRoute({ path }: { path: AdminPath }) {
     return (
       <main>
         <h1>No se puede acceder al área administrativa</h1>
-        <p role="alert">{error ?? "Ocurrió un error al verificar la sesión."}</p>
+        <p role="alert">
+          {error ?? "Ocurrió un error al verificar la sesión."}
+        </p>
       </main>
     );
   }
@@ -47,6 +53,9 @@ function AdminRoute({ path }: { path: AdminPath }) {
   switch (path) {
     case "/admin/clientes":
       content = <ClientsPage />;
+      break;
+    case "/admin/platos":
+      content = <PlatosPage />;
       break;
     default:
       content = <AdminSectionPage path={path} />;

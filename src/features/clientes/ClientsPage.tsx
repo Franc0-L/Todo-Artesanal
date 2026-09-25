@@ -207,7 +207,8 @@ export function ClientsPage() {
       {!loading && total > 0 && (
         <nav className="clients-pagination" aria-label="Paginación de clientes">
           <span>
-            Página {page} de {totalPages} · {total} cliente{total === 1 ? "" : "s"}
+            Página {page} de {totalPages} · {total} cliente
+            {total === 1 ? "" : "s"}
           </span>
           <div>
             <button

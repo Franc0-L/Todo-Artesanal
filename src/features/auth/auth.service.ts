@@ -21,11 +21,18 @@ export async function isCurrentUserAdmin(userId: string): Promise<boolean> {
   return data === true;
 }
 
-export async function signInAdmin(email: string, password: string): Promise<User> {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+export async function signInAdmin(
+  email: string,
+  password: string,
+): Promise<User> {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
   if (error) throw error;
-  if (!data.user) throw new Error("Supabase no devolvió un usuario autenticado.");
+  if (!data.user)
+    throw new Error("Supabase no devolvió un usuario autenticado.");
 
   return data.user;
 }

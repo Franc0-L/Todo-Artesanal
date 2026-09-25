@@ -58,7 +58,8 @@ function HistoryWeek({ entry }: { entry: ClientHistoryEntry }) {
       <header className="client-history__week-header">
         <div>
           <h4>
-            {formatDate(entry.week.startDate)} — {formatDate(entry.week.endDate)}
+            {formatDate(entry.week.startDate)} —{" "}
+            {formatDate(entry.week.endDate)}
           </h4>
           <span className="client-history__status">
             {WEEK_STATUS_LABELS[entry.week.status]}
@@ -76,12 +77,14 @@ function HistoryWeek({ entry }: { entry: ClientHistoryEntry }) {
                 <div>
                   <strong>{dayLabel(order.weekDay?.dayOfWeek ?? 0)}</strong>
                   <span>
-                    {order.option?.type === "menu" ? "Menú" : "Plato"}: {optionLabel(order)}
+                    {order.option?.type === "menu" ? "Menú" : "Plato"}:{" "}
+                    {optionLabel(order)}
                   </span>
                 </div>
                 <div className="client-history__order-meta">
                   <span>
-                    {MODALITY_LABELS[order.modality]} · {order.quantity} × {formatCurrency(order.appliedPrice)}
+                    {MODALITY_LABELS[order.modality]} · {order.quantity} ×{" "}
+                    {formatCurrency(order.appliedPrice)}
                   </span>
                   {order.notes && <small>{order.notes}</small>}
                 </div>
@@ -97,7 +100,9 @@ function HistoryWeek({ entry }: { entry: ClientHistoryEntry }) {
           <ul>
             {entry.cancellations.map((cancellation) => (
               <li key={cancellation.id}>
-                <strong>{dayLabel(cancellation.weekDay?.dayOfWeek ?? 0)}</strong>
+                <strong>
+                  {dayLabel(cancellation.weekDay?.dayOfWeek ?? 0)}
+                </strong>
                 <span>
                   {cancellation.weekDay
                     ? formatDate(cancellation.weekDay.date)
@@ -110,7 +115,9 @@ function HistoryWeek({ entry }: { entry: ClientHistoryEntry }) {
       )}
 
       {entry.orders.length === 0 && entry.cancellations.length === 0 && (
-        <p className="client-history__empty-week">No hay movimientos registrados.</p>
+        <p className="client-history__empty-week">
+          No hay movimientos registrados.
+        </p>
       )}
     </article>
   );
@@ -172,15 +179,25 @@ export function ClientHistorySection({ clientId }: ClientHistorySectionProps) {
           <h3 id="client-history-title">Historial</h3>
           <p>Pedidos y cancelaciones agrupados por semana.</p>
         </div>
-        {total > 0 && <span className="client-link-status">{total} semanas</span>}
+        {total > 0 && (
+          <span className="client-link-status">{total} semanas</span>
+        )}
       </div>
 
-      {loading && <p className="client-history__feedback">Cargando historial…</p>}
+      {loading && (
+        <p className="client-history__feedback">Cargando historial…</p>
+      )}
 
       {!loading && error && (
-        <div className="client-history__feedback client-history__feedback--error" role="alert">
+        <div
+          className="client-history__feedback client-history__feedback--error"
+          role="alert"
+        >
           <p>{error}</p>
-          <button type="button" onClick={() => setReloadToken((current) => current + 1)}>
+          <button
+            type="button"
+            onClick={() => setReloadToken((current) => current + 1)}
+          >
             Reintentar
           </button>
         </div>
@@ -201,7 +218,10 @@ export function ClientHistorySection({ clientId }: ClientHistorySectionProps) {
       )}
 
       {!loading && !error && totalPages > 1 && (
-        <nav className="client-history__pagination" aria-label="Paginación del historial">
+        <nav
+          className="client-history__pagination"
+          aria-label="Paginación del historial"
+        >
           <button
             type="button"
             onClick={() => setPage((current) => Math.max(1, current - 1))}
@@ -214,7 +234,9 @@ export function ClientHistorySection({ clientId }: ClientHistorySectionProps) {
           </span>
           <button
             type="button"
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            onClick={() =>
+              setPage((current) => Math.min(totalPages, current + 1))
+            }
             disabled={page === totalPages}
           >
             Siguiente

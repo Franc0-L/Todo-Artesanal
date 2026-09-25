@@ -24,7 +24,9 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Ocurrió un error de autenticación.";
+  return error instanceof Error
+    ? error.message
+    : "Ocurrió un error de autenticación.";
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -48,7 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState({
         status: isAdmin ? "signed-in" : "forbidden",
         user: isAdmin ? user : null,
-        error: isAdmin ? null : "Esta cuenta no tiene permisos de administrador.",
+        error: isAdmin
+          ? null
+          : "Esta cuenta no tiene permisos de administrador.",
       });
     } catch (error) {
       setState({

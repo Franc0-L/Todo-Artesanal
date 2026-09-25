@@ -10,7 +10,11 @@ const items: Array<{ path: AdminRoutePath; label: string }> = [
   { path: "/admin/historial", label: "Historial" },
 ];
 
-export function AdminNavigation({ currentPath }: { currentPath: AdminRoutePath }) {
+export function AdminNavigation({
+  currentPath,
+}: {
+  currentPath: AdminRoutePath;
+}) {
   return (
     <nav aria-label="Navegación administrativa">
       <ul>
