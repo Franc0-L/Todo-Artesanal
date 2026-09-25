@@ -581,7 +581,10 @@ export function DishDrawer({
                     </div>
 
                     {versionError && (
-                      <p className="dish-form__message dish-form__message--error" role="alert">
+                      <p
+                        className="dish-form__message dish-form__message--error"
+                        role="alert"
+                      >
                         {versionError}
                       </p>
                     )}
@@ -618,7 +621,8 @@ export function DishDrawer({
                               v{version.versionNumber} — {version.name}
                             </strong>
                             <p>
-                              {formatCurrency(version.price)} · {formatDate(version.createdAt)}
+                              {formatCurrency(version.price)} ·{" "}
+                              {formatDate(version.createdAt)}
                             </p>
                           </div>
                           {version.id === currentVersion?.id && (
