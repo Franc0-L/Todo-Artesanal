@@ -107,6 +107,16 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
     document.body.style.overflow = "hidden";
     closeButtonRef.current?.focus();
 
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [clientId]);
+
+  useEffect(() => {
+    if (!clientId) {
+      return;
+    }
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") {
         return;
@@ -120,11 +130,7 @@ export function ClientDrawer({ clientId, onClose, onSaved }: ClientDrawerProps) 
     }
 
     window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [clientId, dirty, onClose]);
 
   function requestClose() {
