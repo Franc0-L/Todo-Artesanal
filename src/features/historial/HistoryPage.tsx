@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   getUnansweredClients,
   listHistoricalWeeks,
@@ -40,6 +40,7 @@ export function HistoryPage() {
   const [unanswered, setUnanswered] = useState<UnansweredClient[]>([]);
   const [unansweredLoading, setUnansweredLoading] = useState(false);
   const [unansweredError, setUnansweredError] = useState<string | null>(null);
+  const unansweredRequestRef = useRef(0);
 
   const loadWeeks = useCallback(async () => {
     setLoading(true);
@@ -72,11 +73,17 @@ export function HistoryPage() {
   }, [loadWeeks]);
 
   const openUnanswered = useCallback(async (week: HistoricalWeek) => {
+    const requestId = unansweredRequestRef.current + 1;
+    unansweredRequestRef.current = requestId;
+
     setSelectedWeekId(week.id);
     setUnanswered([]);
     setUnansweredError(null);
 
-    if (week.unansweredClientCount === 0) return;
+    if (week.unansweredClientCount === 0) {
+      setUnansweredLoading(false);
+      return;
+    }
 
     setUnansweredLoading(true);
     try {
@@ -84,15 +91,20 @@ export function HistoryPage() {
         page: 1,
         pageSize: UNANSWERED_PAGE_SIZE,
       });
+
+      if (unansweredRequestRef.current !== requestId) return;
       setUnanswered(result.items);
     } catch (loadError) {
+      if (unansweredRequestRef.current !== requestId) return;
       setUnansweredError(
         loadError instanceof Error
           ? loadError.message
           : "No se pudieron cargar los clientes sin responder.",
       );
     } finally {
-      setUnansweredLoading(false);
+      if (unansweredRequestRef.current === requestId) {
+        setUnansweredLoading(false);
+      }
     }
   }, []);
 
@@ -240,7 +252,11 @@ export function HistoryPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedWeekId(null)}
+                onClick={() => {
+                  unansweredRequestRef.current += 1;
+                  setSelectedWeekId(null);
+                  setUnansweredLoading(false);
+                }}
                 aria-label="Cerrar"
               >
                 ×
