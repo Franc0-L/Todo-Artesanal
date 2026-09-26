@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useAuth } from "./AuthProvider";
+import "./admin-login.css";
 
 export function AdminLoginPage() {
   const { signIn, error: authError, status } = useAuth();
@@ -9,13 +10,23 @@ export function AdminLoginPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isDisabled = isSubmitting || status === "loading";
+  const hasError = Boolean(submitError || authError);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
+
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail || !password) {
+      setSubmitError("Completá el correo electrónico y la contraseña.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      await signIn(email.trim(), password);
+      await signIn(normalizedEmail, password);
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "No se pudo iniciar sesión.",
@@ -26,26 +37,37 @@ export function AdminLoginPage() {
   }
 
   return (
-    <main>
-      <section aria-labelledby="admin-login-title">
-        <h1 id="admin-login-title">Acceso administrativo</h1>
-        <p>Iniciá sesión para administrar Todo Artesanal.</p>
+    <main className="admin-login" aria-labelledby="admin-login-title">
+      <section className="admin-login__card">
+        <div className="admin-login__brand" aria-hidden="true">
+          <span className="admin-login__brand-mark">TA</span>
+          <span>Todo Artesanal</span>
+        </div>
 
-        <form onSubmit={handleSubmit}>
-          <div>
+        <header className="admin-login__header">
+          <p className="admin-login__eyebrow">Administración</p>
+          <h1 id="admin-login-title">Bienvenido de nuevo</h1>
+          <p>Ingresá para gestionar clientes, menú y pedidos.</p>
+        </header>
+
+        <form className="admin-login__form" onSubmit={handleSubmit} noValidate>
+          <div className="admin-login__field">
             <label htmlFor="admin-email">Correo electrónico</label>
             <input
               id="admin-email"
               name="email"
               type="email"
               autoComplete="username"
+              inputMode="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              disabled={isDisabled}
               required
+              aria-invalid={hasError}
             />
           </div>
 
-          <div>
+          <div className="admin-login__field">
             <label htmlFor="admin-password">Contraseña</label>
             <input
               id="admin-password"
@@ -54,15 +76,23 @@ export function AdminLoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              disabled={isDisabled}
               required
+              aria-invalid={hasError}
             />
           </div>
 
-          {(submitError || authError) && (
-            <p role="alert">{submitError ?? authError}</p>
+          {hasError && (
+            <p className="admin-login__error" role="alert">
+              {submitError ?? authError}
+            </p>
           )}
 
-          <button type="submit" disabled={isSubmitting || status === "loading"}>
+          <button
+            className="admin-login__submit"
+            type="submit"
+            disabled={isDisabled}
+          >
             {isSubmitting ? "Ingresando…" : "Ingresar"}
           </button>
         </form>
