@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
   getUnansweredClients,
   listHistoricalWeeks,
@@ -99,7 +99,7 @@ export function HistoryPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selectedWeek = items.find((week) => week.id === selectedWeekId) ?? null;
 
-  function handleFiltersSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleFiltersSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPage(1);
   }
@@ -153,9 +153,7 @@ export function HistoryPage() {
         ) : items.length === 0 ? (
           <div className="history-feedback">
             <h2>No hay semanas históricas</h2>
-            <p>
-              Las semanas aparecen acá una vez que fueron cerradas.
-            </p>
+            <p>Las semanas aparecen acá una vez que fueron cerradas.</p>
           </div>
         ) : (
           <>
@@ -240,7 +238,11 @@ export function HistoryPage() {
                   {formatDate(selectedWeek.startDate)} — {formatDate(selectedWeek.endDate)}
                 </h2>
               </div>
-              <button type="button" onClick={() => setSelectedWeekId(null)} aria-label="Cerrar">
+              <button
+                type="button"
+                onClick={() => setSelectedWeekId(null)}
+                aria-label="Cerrar"
+              >
                 ×
               </button>
             </header>
