@@ -1,4 +1,7 @@
 .history-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
   display: grid;
   gap: 1.5rem;
 }
@@ -267,6 +270,7 @@
 
 @media (max-width: 600px) {
   .history-page {
+    padding: 24px 16px 36px;
     gap: 1rem;
   }
 
