@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import { ClientDrawer } from "./ClientDrawer";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { listClients } from "./services/clients.service";
 import type { Client } from "./types/client";
 import type { ClientListItem } from "./types/client-list";
@@ -204,14 +205,15 @@ export function ClientsPage() {
         {loading ? (
           <p className="clients-feedback">Cargando clientes…</p>
         ) : items.length === 0 ? (
-          <div className="clients-feedback">
-            <h2>No hay clientes para mostrar</h2>
-            <p>
-              {search || statusFilter !== "all"
+          <EmptyState
+            mascot="bienvenidos"
+            title="No hay clientes para mostrar"
+            description={
+              search || statusFilter !== "all"
                 ? "Probá cambiar la búsqueda o el filtro."
-                : "Todavía no hay clientes registrados."}
-            </p>
-          </div>
+                : "Todavía no hay clientes registrados."
+            }
+          />
         ) : (
           <>
             <div className="clients-list-header" aria-hidden="true">

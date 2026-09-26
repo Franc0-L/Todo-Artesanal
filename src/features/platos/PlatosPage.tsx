@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import { DishDrawer } from "./DishDrawer";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { listDishes } from "./services/dishes.service";
 import type { Climate } from "../../types/domain";
 import type { Dish } from "./types/dish";
@@ -235,14 +236,15 @@ export function PlatosPage() {
         {loading ? (
           <p className="platos-feedback">Cargando platos…</p>
         ) : items.length === 0 ? (
-          <div className="platos-feedback">
-            <h2>No hay platos para mostrar</h2>
-            <p>
-              {hasActiveFilters
+          <EmptyState
+            mascot="cocinando"
+            title="No hay platos para mostrar"
+            description={
+              hasActiveFilters
                 ? "Probá cambiar la búsqueda o los filtros."
-                : "Todavía no hay platos registrados."}
-            </p>
-          </div>
+                : "Todavía no hay platos registrados."
+            }
+          />
         ) : (
           <>
             <div className="platos-list-header" aria-hidden="true">

@@ -10,6 +10,7 @@ import {
   listHistoricalWeeks,
 } from "./services/history.service";
 import { getHistoricalWeekDetail } from "./services/historical-week-detail.service";
+import { EmptyState } from "../../components/ui/EmptyState";
 import type { HistoricalWeek } from "./types/historical-week";
 import type { UnansweredClient } from "./types/unanswered";
 import type { HistoricalWeekDetail } from "./services/historical-week-detail.service";
@@ -56,7 +57,9 @@ export function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
-  const [weekDetail, setWeekDetail] = useState<HistoricalWeekDetail | null>(null);
+  const [weekDetail, setWeekDetail] = useState<HistoricalWeekDetail | null>(
+    null,
+  );
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [unanswered, setUnanswered] = useState<UnansweredClient[]>([]);
@@ -213,10 +216,11 @@ export function HistoryPage() {
         {loading ? (
           <p className="history-feedback">Cargando historial…</p>
         ) : items.length === 0 ? (
-          <div className="history-feedback">
-            <h2>No hay semanas históricas</h2>
-            <p>Las semanas aparecen acá una vez que fueron cerradas.</p>
-          </div>
+          <EmptyState
+            mascot="degustacion"
+            title="No hay semanas históricas"
+            description="Las semanas aparecen acá una vez que fueron cerradas."
+          />
         ) : (
           <>
             <div className="history-list__header" aria-hidden="true">
@@ -238,7 +242,8 @@ export function HistoryPage() {
                   >
                     <div>
                       <strong>
-                        {formatDate(week.startDate)} — {formatDate(week.endDate)}
+                        {formatDate(week.startDate)} —{" "}
+                        {formatDate(week.endDate)}
                       </strong>
                       <span>{week.expectedClientCount} clientes esperados</span>
                     </div>
@@ -303,7 +308,8 @@ export function HistoryPage() {
               <div>
                 <p>Semana cerrada</p>
                 <h2 id="history-drawer-title">
-                  {formatDate(selectedWeek.startDate)} — {formatDate(selectedWeek.endDate)}
+                  {formatDate(selectedWeek.startDate)} —{" "}
+                  {formatDate(selectedWeek.endDate)}
                 </h2>
               </div>
               <button type="button" onClick={closeDrawer} aria-label="Cerrar">
@@ -333,7 +339,10 @@ export function HistoryPage() {
             {detailLoading ? (
               <p className="history-feedback">Cargando detalle…</p>
             ) : detailError ? (
-              <p className="history-feedback history-feedback--error" role="alert">
+              <p
+                className="history-feedback history-feedback--error"
+                role="alert"
+              >
                 {detailError}
               </p>
             ) : (
@@ -348,19 +357,25 @@ export function HistoryPage() {
                       {weekDetail.orders.map((order) => (
                         <li key={order.id}>
                           <div>
-                            <strong>{order.client?.name ?? "Cliente sin nombre"}</strong>
+                            <strong>
+                              {order.client?.name ?? "Cliente sin nombre"}
+                            </strong>
                             <span>
-                              {order.weekDay ? formatDate(order.weekDay.date) : "Día no disponible"}
+                              {order.weekDay
+                                ? formatDate(order.weekDay.date)
+                                : "Día no disponible"}
                               {" · "}
                               {order.option?.name ?? "Opción no disponible"}
                             </span>
                           </div>
                           <div className="history-event-list__meta">
                             <span>
-                              {formatOptionType(order.option?.type ?? "dish")} · {formatModality(order.modality)}
+                              {formatOptionType(order.option?.type ?? "dish")} ·{" "}
+                              {formatModality(order.modality)}
                             </span>
                             <strong>
-                              {order.quantity} × {formatAmount(order.appliedPrice)}
+                              {order.quantity} ×{" "}
+                              {formatAmount(order.appliedPrice)}
                             </strong>
                             {order.notes && <small>{order.notes}</small>}
                           </div>
@@ -368,7 +383,9 @@ export function HistoryPage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="history-feedback">No hubo pedidos en esta semana.</p>
+                    <p className="history-feedback">
+                      No hubo pedidos en esta semana.
+                    </p>
                   )}
                 </section>
 
@@ -383,7 +400,8 @@ export function HistoryPage() {
                         <li key={cancellation.id}>
                           <div>
                             <strong>
-                              {cancellation.client?.name ?? "Cliente sin nombre"}
+                              {cancellation.client?.name ??
+                                "Cliente sin nombre"}
                             </strong>
                             <span>
                               {cancellation.weekDay
@@ -391,12 +409,16 @@ export function HistoryPage() {
                                 : "Día no disponible"}
                             </span>
                           </div>
-                          <span className="history-event-list__status">Canceló</span>
+                          <span className="history-event-list__status">
+                            Canceló
+                          </span>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="history-feedback">No hubo cancelaciones en esta semana.</p>
+                    <p className="history-feedback">
+                      No hubo cancelaciones en esta semana.
+                    </p>
                   )}
                 </section>
               </>
@@ -410,7 +432,10 @@ export function HistoryPage() {
               {unansweredLoading ? (
                 <p className="history-feedback">Cargando…</p>
               ) : unansweredError ? (
-                <p className="history-feedback history-feedback--error" role="alert">
+                <p
+                  className="history-feedback history-feedback--error"
+                  role="alert"
+                >
                   {unansweredError}
                 </p>
               ) : unanswered.length === 0 ? (
@@ -421,7 +446,9 @@ export function HistoryPage() {
                 <ul className="history-unanswered-list">
                   {unanswered.map((client) => (
                     <li key={client.clientId}>
-                      <strong>{client.client?.name ?? "Cliente sin nombre"}</strong>
+                      <strong>
+                        {client.client?.name ?? "Cliente sin nombre"}
+                      </strong>
                       <span>{client.client?.phone ?? "Sin teléfono"}</span>
                     </li>
                   ))}

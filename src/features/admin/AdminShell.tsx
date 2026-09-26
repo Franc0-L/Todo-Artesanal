@@ -36,7 +36,7 @@ export function AdminShell({
             aria-label="Ir al panel de inicio"
           >
             <img
-              src="/favicon.png"
+              src="/mascot/icon_chef.png"
               alt="Mascota Todo Artesanal"
               className="admin-shell__brand-logo-img"
               width="34"

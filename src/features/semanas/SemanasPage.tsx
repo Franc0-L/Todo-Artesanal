@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { WeekDrawer } from "./WeekDrawer";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { listWeeks } from "./services/weeks.service";
 import { formatDate, formatDateRange } from "../../lib/formatters";
 import type { WeekStatus } from "../../types/domain";
@@ -148,14 +149,15 @@ export function SemanasPage() {
         {loading ? (
           <p className="semanas-feedback">Cargando semanas…</p>
         ) : items.length === 0 ? (
-          <div className="semanas-feedback">
-            <h2>No hay semanas para mostrar</h2>
-            <p>
-              {statusFilter !== "all"
+          <EmptyState
+            mascot="listo_servir"
+            title="No hay semanas para mostrar"
+            description={
+              statusFilter !== "all"
                 ? "Probá cambiar el filtro de estado."
-                : "Todavía no hay semanas creadas."}
-            </p>
-          </div>
+                : "Todavía no hay semanas creadas."
+            }
+          />
         ) : (
           <>
             <div className="semanas-list-header" aria-hidden="true">

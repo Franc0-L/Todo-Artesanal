@@ -52,12 +52,11 @@
 }
 
 .admin-shell__brand-logo-img {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  object-fit: cover;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 25%));
 }
 
 .admin-shell__brand-text {
@@ -237,6 +236,33 @@
   border-bottom-color: var(--primary);
 }
 
+.admin-nav__icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  object-fit: contain;
+  opacity: 0.82;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.admin-nav__button:hover .admin-nav__icon {
+  opacity: 1;
+}
+
+.admin-nav__button[aria-current="page"] .admin-nav__icon {
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+@media (max-width: 640px) {
+  .admin-nav__icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 /* =========================================================
    Contenedor Principal
    ========================================================= */
@@ -252,6 +278,10 @@
 
   .admin-nav__inner {
     padding: 0 12px;
+  }
+
+  .admin-nav__button {
+    padding: 12px 10px;
   }
 
   .admin-shell__user-info span {

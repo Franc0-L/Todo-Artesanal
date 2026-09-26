@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import { MenuDrawer } from "./MenuDrawer";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { listMenus } from "./services/menus.service";
 import type { Menu } from "./types/menu";
 import type { MenuListItem } from "./types/menu-list";
@@ -202,14 +203,15 @@ export function MenusPage() {
         {loading ? (
           <p className="menus-feedback">Cargando menús…</p>
         ) : items.length === 0 ? (
-          <div className="menus-feedback">
-            <h2>No hay menús para mostrar</h2>
-            <p>
-              {search || statusFilter !== "all"
+          <EmptyState
+            mascot="preparacion"
+            title="No hay menús para mostrar"
+            description={
+              search || statusFilter !== "all"
                 ? "Probá cambiar la búsqueda o el filtro."
-                : "Todavía no hay menús registrados."}
-            </p>
-          </div>
+                : "Todavía no hay menús registrados."
+            }
+          />
         ) : (
           <>
             <div className="menus-list-header" aria-hidden="true">

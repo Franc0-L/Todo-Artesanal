@@ -41,13 +41,23 @@ export function AdminLoginPage() {
       <section className="admin-login__card">
         <div className="admin-login__brand" aria-hidden="true">
           <img
-            src="/favicon.png"
+            src="/mascot/icon_chef.png"
             alt="Mascota Todo Artesanal"
             className="admin-login__brand-logo"
             width="44"
             height="44"
           />
           <span>Todo Artesanal</span>
+        </div>
+
+        <div className="admin-login__mascot" aria-hidden="true">
+          <img
+            src="/mascot/bienvenidos.png"
+            alt=""
+            className="admin-login__mascot-img"
+            width="200"
+            height="212"
+          />
         </div>
 
         <header className="admin-login__header">

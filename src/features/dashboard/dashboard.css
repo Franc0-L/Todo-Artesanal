@@ -58,7 +58,7 @@
 .dashboard-primary-action {
   border: 1px solid var(--primary);
   background: var(--primary);
-  color: #fff;
+  color: var(--text-on-solid);
 }
 
 .dashboard-primary-action:hover {
@@ -132,7 +132,7 @@
   border-radius: 14px;
   background: var(--bg-surface);
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
 }
 
 .dashboard-hero__header {
@@ -155,6 +155,14 @@
   margin: 0;
   font-size: 1.35rem;
   color: var(--text-main);
+}
+
+.dashboard-hero__mascot {
+  width: 46px;
+  height: auto;
+  flex-shrink: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 18%));
 }
 
 .dashboard-status-badge {
@@ -235,13 +243,12 @@
 }
 
 .dashboard-hero__empty-mascot {
-  width: 72px;
-  height: 72px;
-  border-radius: 16px;
-  object-fit: cover;
-  opacity: 0.85;
+  width: 96px;
+  height: auto;
+  max-height: 170px;
+  object-fit: contain;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  filter: drop-shadow(0 8px 14px rgb(0 0 0 / 18%));
 }
 
 .dashboard-hero__empty-body {
@@ -259,6 +266,10 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+  }
+
+  .dashboard-hero__empty-mascot {
+    width: 72px;
   }
 }
 
@@ -291,7 +302,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 2%);
 }
 
 .dashboard-overview-card__label {
@@ -332,13 +343,13 @@
     transform 0.15s ease,
     border-color 0.15s ease,
     box-shadow 0.15s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 2%);
 }
 
 .dashboard-shortcut-card:hover {
   border-color: var(--border-strong);
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 5%);
 }
 
 .dashboard-shortcut-card__title {

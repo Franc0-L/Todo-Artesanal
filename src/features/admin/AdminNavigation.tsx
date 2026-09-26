@@ -1,13 +1,21 @@
 import { navigate, type AdminRoutePath } from "../../app/routes";
+import type { MascotAsset } from "../../components/ui/EmptyState";
 
-const items: Array<{ path: AdminRoutePath; label: string }> = [
-  { path: "/admin", label: "Inicio" },
-  { path: "/admin/clientes", label: "Clientes" },
-  { path: "/admin/platos", label: "Platos" },
-  { path: "/admin/menus", label: "Menús" },
-  { path: "/admin/semanas", label: "Semanas" },
-  { path: "/admin/pedidos", label: "Pedidos" },
-  { path: "/admin/historial", label: "Historial" },
+interface AdminNavItem {
+  path: AdminRoutePath;
+  label: string;
+  /** Ícono de la mascota, servido desde `public/mascot/<icon>.png`. */
+  icon: MascotAsset;
+}
+
+const items: AdminNavItem[] = [
+  { path: "/admin", label: "Inicio", icon: "icon_gorro" },
+  { path: "/admin/clientes", label: "Clientes", icon: "icon_cafe" },
+  { path: "/admin/platos", label: "Platos", icon: "icon_batidor" },
+  { path: "/admin/menus", label: "Menús", icon: "icon_cubiertos" },
+  { path: "/admin/semanas", label: "Semanas", icon: "icon_espatula" },
+  { path: "/admin/pedidos", label: "Pedidos", icon: "icon_pedir" },
+  { path: "/admin/historial", label: "Historial", icon: "icon_campana" },
 ];
 
 export function AdminNavigation({
@@ -30,6 +38,15 @@ export function AdminNavigation({
                   aria-current={isCurrent ? "page" : undefined}
                   onClick={() => navigate(item.path)}
                 >
+                  <img
+                    className="admin-nav__icon"
+                    src={`/mascot/${item.icon}.png`}
+                    alt=""
+                    aria-hidden="true"
+                    width="22"
+                    height="22"
+                    decoding="async"
+                  />
                   {item.label}
                 </button>
               </li>

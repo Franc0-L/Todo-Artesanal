@@ -93,6 +93,14 @@ export function DashboardPage() {
             >
               <div className="dashboard-hero__header">
                 <div className="dashboard-hero__title-group">
+                  <img
+                    src="/mascot/aprobado.png"
+                    alt=""
+                    aria-hidden="true"
+                    className="dashboard-hero__mascot"
+                    width="46"
+                    height="78"
+                  />
                   <h2 id="active-week-heading">
                     Semana en curso:{" "}
                     {formatDateRange(
@@ -179,11 +187,12 @@ export function DashboardPage() {
             >
               <div className="dashboard-hero--empty-layout">
                 <img
-                  src="/favicon.png"
-                  alt="Mascota Todo Artesanal"
+                  src="/mascot/pose_base.png"
+                  alt=""
+                  aria-hidden="true"
                   className="dashboard-hero__empty-mascot"
-                  width="72"
-                  height="72"
+                  width="96"
+                  height="159"
                 />
                 <div className="dashboard-hero__empty-body">
                   <div className="dashboard-hero__title-group">

@@ -11,9 +11,9 @@
 .history-list,
 .history-pagination,
 .history-drawer {
-  border: 1px solid var(--border-color, #d8d8d8);
+  border: 1px solid var(--border-subtle);
   border-radius: 1rem;
-  background: var(--surface-color, #fff);
+  background: var(--bg-surface);
 }
 
 .history-page__header {
@@ -68,11 +68,11 @@
 .history-pagination button,
 .history-feedback button {
   min-height: 2.5rem;
-  border: 1px solid var(--border-color, #cfcfcf);
+  border: 1px solid var(--border-strong);
   border-radius: 0.6rem;
   padding: 0.55rem 0.8rem;
-  background: inherit;
-  color: inherit;
+  background: var(--bg-surface);
+  color: var(--text-main);
   font: inherit;
 }
 
@@ -96,7 +96,7 @@
 }
 
 .history-list__header {
-  border-bottom: 1px solid var(--border-color, #d8d8d8);
+  border-bottom: 1px solid var(--border-subtle);
   font-size: 0.76rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -113,7 +113,7 @@
 }
 
 .history-list li + li {
-  border-top: 1px solid var(--border-color, #e4e4e4);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .history-week-row {
@@ -127,7 +127,7 @@
 }
 
 .history-week-row:hover {
-  background: var(--surface-hover-color, rgb(0 0 0 / 0.025));
+  background: var(--bg-hover);
 }
 
 .history-week-row:focus-visible {
@@ -158,7 +158,7 @@
 }
 
 .history-unanswered-button--empty {
-  border-color: var(--border-color, #d8d8d8);
+  border-color: var(--border-subtle);
   opacity: 0.55;
 }
 
@@ -186,7 +186,7 @@
 }
 
 .history-feedback--error {
-  color: #9b1c1c;
+  color: var(--danger-text);
 }
 
 .history-overlay {
@@ -195,7 +195,8 @@
   z-index: 20;
   display: flex;
   justify-content: flex-end;
-  background: rgb(0 0 0 / 0.38);
+  background: var(--backdrop-color);
+  backdrop-filter: blur(2px);
 }
 
 .history-drawer {
@@ -204,7 +205,11 @@
   border-radius: 1rem 0 0 1rem;
   overflow: auto;
   padding: 1.5rem;
-  box-shadow: 0 1rem 3rem rgb(0 0 0 / 0.18);
+  background: var(--drawer-bg);
+  color: var(--text-body);
+  border: 1px solid var(--border-subtle);
+  border-right: 0;
+  box-shadow: var(--drawer-shadow);
 }
 
 .history-drawer > header {
@@ -239,7 +244,7 @@
 
 .history-summary > div {
   padding: 0.9rem;
-  border: 1px solid var(--border-color, #d8d8d8);
+  border: 1px solid var(--border-subtle);
   border-radius: 0.75rem;
 }
 
@@ -272,7 +277,7 @@
 .history-section-heading > span {
   min-width: 2rem;
   padding: 0.2rem 0.55rem;
-  border: 1px solid var(--border-color, #d8d8d8);
+  border: 1px solid var(--border-subtle);
   border-radius: 999px;
   text-align: center;
   font-size: 0.8rem;
@@ -289,7 +294,7 @@
   grid-template-columns: minmax(0, 1.4fr) minmax(150px, 1fr);
   gap: 1rem;
   padding: 0.85rem;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-subtle);
   border-radius: 0.75rem;
 }
 
@@ -324,7 +329,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.8rem 0;
-  border-bottom: 1px solid var(--border-color, #e4e4e4);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .history-unanswered-list span {

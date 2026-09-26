@@ -7,7 +7,7 @@
 }
 .client-form__summary-main p {
   margin: 0;
-  color: #475569;
+  color: var(--text-soft);
   overflow-wrap: anywhere;
 }
 .client-form__status-action,
@@ -15,17 +15,17 @@
   justify-self: start;
   min-height: 38px;
   padding: 8px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: #fff;
-  color: #334155;
+  background: var(--bg-surface);
+  color: var(--text-body);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
 .client-form__status-action:hover:not(:disabled),
 .client-link-rotate:hover:not(:disabled) {
-  background: #f8fafc;
+  background: var(--bg-subtle);
 }
 .client-form__status-action:disabled,
 .client-link-rotate:disabled {
@@ -36,7 +36,7 @@
   display: grid;
   gap: 14px;
   padding: 22px 0;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-subtle);
 }
 .client-drawer__section-heading {
   display: flex;
@@ -46,12 +46,12 @@
 }
 .client-drawer__section-heading h3 {
   margin: 0;
-  color: #1f2937;
+  color: var(--text-body);
   font-size: 1rem;
 }
 .client-drawer__section-heading p {
   margin: 5px 0 0;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 0.85rem;
   line-height: 1.45;
 }
@@ -59,8 +59,8 @@
   flex: 0 0 auto;
   padding: 4px 8px;
   border-radius: 999px;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-subtle);
+  color: var(--text-soft);
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -70,18 +70,18 @@
   font-size: 0.875rem;
 }
 .client-link-feedback--error {
-  border: 1px solid #fecaca;
-  background: #fef2f2;
-  color: #991b1b;
+  border: 1px solid var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 .client-link-generated {
   display: grid;
   gap: 8px;
   padding: 12px;
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--primary-border);
   border-radius: 9px;
-  background: #eff6ff;
-  color: #1e3a8a;
+  background: var(--primary-subtle);
+  color: var(--primary);
 }
 .client-link-generated label {
   font-size: 0.8rem;
@@ -95,20 +95,20 @@
   min-width: 0;
   width: 100%;
   padding: 9px 10px;
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--primary-border);
   border-radius: 7px;
-  background: #fff;
-  color: #1f2937;
+  background: var(--bg-surface);
+  color: var(--text-body);
   font: inherit;
 }
 .client-link-generated__controls button {
   flex: 0 0 auto;
   min-height: 40px;
   padding: 8px 12px;
-  border: 1px solid #93c5fd;
+  border: 1px solid var(--primary-border);
   border-radius: 7px;
-  background: #fff;
-  color: #1e3a8a;
+  background: var(--bg-surface);
+  color: var(--primary);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
