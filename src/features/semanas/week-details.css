@@ -16,13 +16,16 @@
 .week-day-column__header { display:flex; flex-direction:column; gap:2px; }
 .week-day-column__header strong { color:var(--text-main); font-size:.9rem; }
 .week-day-column__header span { color:var(--text-muted); font-size:.78rem; }
-.week-day-column__header::after { content:"Disponible para pedidos General u Opcional"; display:inline-flex; align-self:flex-start; margin-top:5px; padding:3px 7px; border:1px solid var(--border-subtle); border-radius:999px; background:var(--bg-surface); color:var(--text-muted); font-size:.68rem; font-weight:600; }
+.week-day-column__header::after { content:"Definí una oferta General y una Opcional"; display:inline-flex; align-self:flex-start; margin-top:5px; padding:3px 7px; border:1px solid var(--border-subtle); border-radius:999px; background:var(--bg-surface); color:var(--text-muted); font-size:.68rem; font-weight:600; }
 .week-day-column__options { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
 .week-day-column__empty { margin:0; padding:8px; color:var(--text-muted); font-size:.78rem; font-style:italic; text-align:center; border:1px dashed var(--border-strong); border-radius:8px; }
 .week-day-column__option { display:grid; grid-template-columns:auto 1fr auto; grid-template-rows:auto auto; align-items:center; gap:4px 8px; padding:8px; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-surface); font-size:.78rem; }
 .week-day-column__option-type { grid-row:1; grid-column:1; padding:1px 6px; border-radius:999px; background:var(--primary); color:var(--text-on-solid); font-size:.65rem; font-weight:700; text-transform:uppercase; justify-self:start; }
 .week-day-column__option-type--menu { background:var(--accent); }
 .week-day-column__option-name { grid-column:1/-1; grid-row:2; overflow-wrap:anywhere; font-weight:600; color:var(--text-main); }
+.week-day-column__option-name::before { display:inline-flex; margin-right:7px; padding:2px 6px; border-radius:999px; font-size:.62rem; font-weight:800; vertical-align:middle; }
+.week-day-column__option:nth-child(1) .week-day-column__option-name::before { content:"General"; background:var(--primary-subtle); color:var(--primary); }
+.week-day-column__option:nth-child(2) .week-day-column__option-name::before { content:"Opcional"; background:var(--accent-subtle); color:var(--accent); }
 .week-day-column__option > span:nth-child(2) { grid-row:1; grid-column:2; justify-self:end; color:var(--text-soft); white-space:nowrap; }
 .week-day-column__option button { grid-row:1; grid-column:3; width:20px; height:20px; border:1px solid var(--border-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-muted); font-size:.85rem; line-height:1; cursor:pointer; }
 .week-day-column__option button:hover:not(:disabled) { background:var(--danger-bg); border-color:var(--danger-border); color:var(--danger-text); }
@@ -40,7 +43,6 @@
 .week-day-column__results li button { flex:0 0 auto; min-height:26px; padding:3px 8px; border:1px solid var(--border-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-body); font:inherit; font-size:.72rem; font-weight:700; cursor:pointer; }
 .week-day-column__results li button:hover:not(:disabled) { background:var(--primary-subtle); border-color:var(--primary); color:var(--primary); }
 .week-day-column__results li button:disabled { cursor:not-allowed; opacity:.5; }
-
 @media (max-width:720px) {
   .week-drawer .dish-form__fields { grid-template-columns:1fr; }
   .week-drawer input[type="date"] { width:100%; }
