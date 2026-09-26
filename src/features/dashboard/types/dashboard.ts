@@ -5,6 +5,7 @@ export interface ActiveWeekSummary {
   week: Week;
   totals: OrderTotals;
   expectedClientCount: number;
+  unansweredClientCount: number;
   cancellationCount: number;
 }
 
