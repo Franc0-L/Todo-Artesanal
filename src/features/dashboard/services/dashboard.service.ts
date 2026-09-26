@@ -2,6 +2,7 @@ import { getActiveWeek, listWeeks } from "../../semanas/services/weeks.service";
 import { getExpectedClientCount } from "../../semanas/services/week-expected-clients.service";
 import { getOrderTotals } from "../../pedidos/services/orders.service";
 import { listCancellations } from "../../cancelaciones/services/cancellations.service";
+import { getUnansweredClients } from "../../historial/services/history.service";
 import { listClients } from "../../clientes/services/clients.service";
 import { listDishes } from "../../platos/services/dishes.service";
 import { listMenus } from "../../menus/services/menus.service";
@@ -16,7 +17,8 @@ import type {
  * los servicios y contratos de dominio existentes.
  *
  * Se consultan en paralelo:
- *  - Semana activa (y si existe, sus totales, clientes esperados y cancelaciones)
+ *  - Semana activa (y si existe, sus totales, clientes esperados,
+ *    clientes sin responder y cancelaciones)
  *  - Existencia de semanas en borrador
  *  - Conteo de clientes (totales y activos)
  *  - Conteo de platos y menús activos
@@ -44,12 +46,17 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   let activeWeekSummary: ActiveWeekSummary | null = null;
 
   if (activeWeek) {
-    const [totalsResult, expectedCountResult, cancellationsResult] =
-      await Promise.allSettled([
-        getOrderTotals({ weekId: activeWeek.id }),
-        getExpectedClientCount(activeWeek.id),
-        listCancellations({ weekId: activeWeek.id, page: 1, pageSize: 1 }),
-      ]);
+    const [
+      totalsResult,
+      expectedCountResult,
+      unansweredResult,
+      cancellationsResult,
+    ] = await Promise.allSettled([
+      getOrderTotals({ weekId: activeWeek.id }),
+      getExpectedClientCount(activeWeek.id),
+      getUnansweredClients(activeWeek.id, { page: 1, pageSize: 1 }),
+      listCancellations({ weekId: activeWeek.id, page: 1, pageSize: 1 }),
+    ]);
 
     const totals =
       totalsResult.status === "fulfilled"
@@ -61,6 +68,9 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
         ? expectedCountResult.value
         : 0;
 
+    const unansweredClientCount =
+      unansweredResult.status === "fulfilled" ? unansweredResult.value.total : 0;
+
     const cancellationCount =
       cancellationsResult.status === "fulfilled"
         ? cancellationsResult.value.total
@@ -70,6 +80,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       week: activeWeek,
       totals,
       expectedClientCount,
+      unansweredClientCount,
       cancellationCount,
     };
   }
