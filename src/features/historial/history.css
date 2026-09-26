@@ -105,7 +105,8 @@
 }
 
 .history-list ul,
-.history-unanswered-list {
+.history-unanswered-list,
+.history-event-list {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -113,6 +114,25 @@
 
 .history-list li + li {
   border-top: 1px solid var(--border-color, #e4e4e4);
+}
+
+.history-week-row {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-week-row:hover {
+  background: var(--surface-hover-color, rgb(0 0 0 / 0.025));
+}
+
+.history-week-row:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
 }
 
 .history-week-row > div {
@@ -135,13 +155,11 @@
   color: inherit;
   font: inherit;
   font-weight: 700;
-  cursor: pointer;
 }
 
 .history-unanswered-button--empty {
   border-color: var(--border-color, #d8d8d8);
   opacity: 0.55;
-  cursor: default;
 }
 
 .history-pagination {
@@ -181,7 +199,7 @@
 }
 
 .history-drawer {
-  width: min(34rem, 100%);
+  width: min(42rem, 100%);
   min-height: 100%;
   border-radius: 1rem 0 0 1rem;
   overflow: auto;
@@ -232,6 +250,67 @@
 
 .history-summary dd {
   margin: 0.25rem 0 0;
+  font-weight: 700;
+}
+
+.history-drawer section + section {
+  margin-top: 2rem;
+}
+
+.history-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.history-section-heading h3 {
+  margin-bottom: 0;
+}
+
+.history-section-heading > span {
+  min-width: 2rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--border-color, #d8d8d8);
+  border-radius: 999px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.history-event-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.history-event-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(150px, 1fr);
+  gap: 1rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 0.75rem;
+}
+
+.history-event-list li > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.history-event-list li span,
+.history-event-list small {
+  opacity: 0.7;
+}
+
+.history-event-list__meta {
+  justify-items: end;
+  text-align: right;
+}
+
+.history-event-list__status {
+  align-self: center;
+  justify-self: end;
   font-weight: 700;
 }
 
@@ -301,5 +380,25 @@
   .history-drawer {
     width: 100%;
     border-radius: 0;
+  }
+
+  .history-event-list li {
+    grid-template-columns: 1fr;
+  }
+
+  .history-event-list__meta,
+  .history-event-list__status {
+    justify-items: start;
+    justify-self: start;
+    text-align: left;
+  }
+
+  .history-unanswered-list li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .history-unanswered-list span {
+    text-align: left;
   }
 }
