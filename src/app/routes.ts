@@ -5,6 +5,7 @@ export type AdminRoutePath =
   | "/admin/menus"
   | "/admin/semanas"
   | "/admin/pedidos"
+  | "/admin/cancelaciones"
   | "/admin/historial";
 
 export type AppRoute =

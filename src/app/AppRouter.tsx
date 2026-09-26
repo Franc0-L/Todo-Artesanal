@@ -10,6 +10,8 @@ import { HistoryPage } from "../features/historial/HistoryPage";
 import { MenusPage } from "../features/menus/MenusPage";
 import { PlatosPage } from "../features/platos/PlatosPage";
 import { SemanasPage } from "../features/semanas/SemanasPage";
+import { PedidosPage } from "../features/pedidos/PedidosPage";
+import { CancelacionesPage } from "../features/cancelaciones/CancelacionesPage";
 import { resolveRoute } from "./routes";
 
 function subscribeToLocation(onChange: () => void) {
@@ -59,6 +61,12 @@ function AdminRoute({ path }: { path: AdminPath }) {
       break;
     case "/admin/semanas":
       content = <SemanasPage />;
+      break;
+    case "/admin/pedidos":
+      content = <PedidosPage />;
+      break;
+    case "/admin/cancelaciones":
+      content = <CancelacionesPage />;
       break;
     case "/admin/historial":
       content = <HistoryPage />;
