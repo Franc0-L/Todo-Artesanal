@@ -9,8 +9,10 @@ import {
   getUnansweredClients,
   listHistoricalWeeks,
 } from "./services/history.service";
+import { getHistoricalWeekDetail } from "./services/historical-week-detail.service";
 import type { HistoricalWeek } from "./types/historical-week";
 import type { UnansweredClient } from "./types/unanswered";
+import type { HistoricalWeekDetail } from "./services/historical-week-detail.service";
 import "./history.css";
 
 const PAGE_SIZE = 10;
@@ -34,6 +36,17 @@ function formatAmount(value: number): string {
   }).format(value);
 }
 
+function formatModality(value: string): string {
+  if (value === "general") return "General";
+  if (value === "opcional") return "Opcional";
+  if (value === "media_vianda") return "Media vianda";
+  return value;
+}
+
+function formatOptionType(value: string): string {
+  return value === "menu" ? "Menú" : "Plato";
+}
+
 export function HistoryPage() {
   const [items, setItems] = useState<HistoricalWeek[]>([]);
   const [total, setTotal] = useState(0);
@@ -43,10 +56,13 @@ export function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
+  const [weekDetail, setWeekDetail] = useState<HistoricalWeekDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [unanswered, setUnanswered] = useState<UnansweredClient[]>([]);
   const [unansweredLoading, setUnansweredLoading] = useState(false);
   const [unansweredError, setUnansweredError] = useState<string | null>(null);
-  const unansweredRequestRef = useRef(0);
+  const detailRequestRef = useRef(0);
 
   const loadWeeks = useCallback(async () => {
     setLoading(true);
@@ -78,37 +94,57 @@ export function HistoryPage() {
     void loadWeeks();
   }, [loadWeeks]);
 
-  const openUnanswered = useCallback(async (week: HistoricalWeek) => {
-    const requestId = unansweredRequestRef.current + 1;
-    unansweredRequestRef.current = requestId;
+  const openWeekDetail = useCallback(async (week: HistoricalWeek) => {
+    const requestId = detailRequestRef.current + 1;
+    detailRequestRef.current = requestId;
 
     setSelectedWeekId(week.id);
+    setWeekDetail(null);
+    setDetailError(null);
     setUnanswered([]);
     setUnansweredError(null);
+    setDetailLoading(true);
+    setUnansweredLoading(week.unansweredClientCount > 0);
 
-    if (week.unansweredClientCount === 0) {
-      setUnansweredLoading(false);
-      return;
-    }
-
-    setUnansweredLoading(true);
     try {
-      const result = await getUnansweredClients(week.id, {
-        page: 1,
-        pageSize: UNANSWERED_PAGE_SIZE,
-      });
+      const detailPromise = getHistoricalWeekDetail(week.id);
+      const unansweredPromise =
+        week.unansweredClientCount > 0
+          ? getUnansweredClients(week.id, {
+              page: 1,
+              pageSize: UNANSWERED_PAGE_SIZE,
+            })
+          : Promise.resolve(null);
 
-      if (unansweredRequestRef.current !== requestId) return;
-      setUnanswered(result.items);
-    } catch (loadError) {
-      if (unansweredRequestRef.current !== requestId) return;
-      setUnansweredError(
-        loadError instanceof Error
-          ? loadError.message
-          : "No se pudieron cargar los clientes sin responder.",
-      );
+      const [detailResult, unansweredResult] = await Promise.allSettled([
+        detailPromise,
+        unansweredPromise,
+      ]);
+
+      if (detailRequestRef.current !== requestId) return;
+
+      if (detailResult.status === "fulfilled") {
+        setWeekDetail(detailResult.value);
+      } else {
+        setDetailError(
+          detailResult.reason instanceof Error
+            ? detailResult.reason.message
+            : "No se pudo cargar el detalle de la semana.",
+        );
+      }
+
+      if (unansweredResult.status === "fulfilled") {
+        setUnanswered(unansweredResult.value?.items ?? []);
+      } else {
+        setUnansweredError(
+          unansweredResult.reason instanceof Error
+            ? unansweredResult.reason.message
+            : "No se pudieron cargar los clientes sin responder.",
+        );
+      }
     } finally {
-      if (unansweredRequestRef.current === requestId) {
+      if (detailRequestRef.current === requestId) {
+        setDetailLoading(false);
         setUnansweredLoading(false);
       }
     }
@@ -120,6 +156,14 @@ export function HistoryPage() {
   function handleFiltersSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPage(1);
+  }
+
+  function closeDrawer() {
+    detailRequestRef.current += 1;
+    setSelectedWeekId(null);
+    setWeekDetail(null);
+    setDetailLoading(false);
+    setUnansweredLoading(false);
   }
 
   return (
@@ -186,11 +230,15 @@ export function HistoryPage() {
             <ul aria-label="Semanas históricas">
               {items.map((week) => (
                 <li key={week.id}>
-                  <article className="history-week-row">
+                  <button
+                    type="button"
+                    className="history-week-row"
+                    onClick={() => void openWeekDetail(week)}
+                    aria-label={`Abrir detalle de la semana ${formatDate(week.startDate)} a ${formatDate(week.endDate)}`}
+                  >
                     <div>
                       <strong>
-                        {formatDate(week.startDate)} —{" "}
-                        {formatDate(week.endDate)}
+                        {formatDate(week.startDate)} — {formatDate(week.endDate)}
                       </strong>
                       <span>{week.expectedClientCount} clientes esperados</span>
                     </div>
@@ -198,19 +246,16 @@ export function HistoryPage() {
                     <span>{week.totalQuantity}</span>
                     <strong>{formatAmount(week.totalAmount)}</strong>
                     <span>{week.cancellationCount}</span>
-                    <button
-                      type="button"
+                    <span
                       className={
                         week.unansweredClientCount > 0
                           ? "history-unanswered-button"
                           : "history-unanswered-button history-unanswered-button--empty"
                       }
-                      disabled={week.unansweredClientCount === 0}
-                      onClick={() => void openUnanswered(week)}
                     >
                       {week.unansweredClientCount}
-                    </button>
-                  </article>
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -258,19 +303,10 @@ export function HistoryPage() {
               <div>
                 <p>Semana cerrada</p>
                 <h2 id="history-drawer-title">
-                  {formatDate(selectedWeek.startDate)} —{" "}
-                  {formatDate(selectedWeek.endDate)}
+                  {formatDate(selectedWeek.startDate)} — {formatDate(selectedWeek.endDate)}
                 </h2>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  unansweredRequestRef.current += 1;
-                  setSelectedWeekId(null);
-                  setUnansweredLoading(false);
-                }}
-                aria-label="Cerrar"
-              >
+              <button type="button" onClick={closeDrawer} aria-label="Cerrar">
                 ×
               </button>
             </header>
@@ -294,15 +330,87 @@ export function HistoryPage() {
               </div>
             </dl>
 
+            {detailLoading ? (
+              <p className="history-feedback">Cargando detalle…</p>
+            ) : detailError ? (
+              <p className="history-feedback history-feedback--error" role="alert">
+                {detailError}
+              </p>
+            ) : (
+              <>
+                <section aria-labelledby="history-orders-title">
+                  <div className="history-section-heading">
+                    <h3 id="history-orders-title">Pedidos</h3>
+                    <span>{weekDetail?.orders.length ?? 0}</span>
+                  </div>
+                  {weekDetail?.orders.length ? (
+                    <ul className="history-event-list">
+                      {weekDetail.orders.map((order) => (
+                        <li key={order.id}>
+                          <div>
+                            <strong>{order.client?.name ?? "Cliente sin nombre"}</strong>
+                            <span>
+                              {order.weekDay ? formatDate(order.weekDay.date) : "Día no disponible"}
+                              {" · "}
+                              {order.option?.name ?? "Opción no disponible"}
+                            </span>
+                          </div>
+                          <div className="history-event-list__meta">
+                            <span>
+                              {formatOptionType(order.option?.type ?? "dish")} · {formatModality(order.modality)}
+                            </span>
+                            <strong>
+                              {order.quantity} × {formatAmount(order.appliedPrice)}
+                            </strong>
+                            {order.notes && <small>{order.notes}</small>}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="history-feedback">No hubo pedidos en esta semana.</p>
+                  )}
+                </section>
+
+                <section aria-labelledby="history-cancellations-title">
+                  <div className="history-section-heading">
+                    <h3 id="history-cancellations-title">Cancelaciones</h3>
+                    <span>{weekDetail?.cancellations.length ?? 0}</span>
+                  </div>
+                  {weekDetail?.cancellations.length ? (
+                    <ul className="history-event-list">
+                      {weekDetail.cancellations.map((cancellation) => (
+                        <li key={cancellation.id}>
+                          <div>
+                            <strong>
+                              {cancellation.client?.name ?? "Cliente sin nombre"}
+                            </strong>
+                            <span>
+                              {cancellation.weekDay
+                                ? formatDate(cancellation.weekDay.date)
+                                : "Día no disponible"}
+                            </span>
+                          </div>
+                          <span className="history-event-list__status">Canceló</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="history-feedback">No hubo cancelaciones en esta semana.</p>
+                  )}
+                </section>
+              </>
+            )}
+
             <section aria-labelledby="history-unanswered-title">
-              <h3 id="history-unanswered-title">Clientes sin responder</h3>
+              <div className="history-section-heading">
+                <h3 id="history-unanswered-title">Clientes sin responder</h3>
+                <span>{selectedWeek.unansweredClientCount}</span>
+              </div>
               {unansweredLoading ? (
                 <p className="history-feedback">Cargando…</p>
               ) : unansweredError ? (
-                <p
-                  className="history-feedback history-feedback--error"
-                  role="alert"
-                >
+                <p className="history-feedback history-feedback--error" role="alert">
                   {unansweredError}
                 </p>
               ) : unanswered.length === 0 ? (
@@ -313,9 +421,7 @@ export function HistoryPage() {
                 <ul className="history-unanswered-list">
                   {unanswered.map((client) => (
                     <li key={client.clientId}>
-                      <strong>
-                        {client.client?.name ?? "Cliente sin nombre"}
-                      </strong>
+                      <strong>{client.client?.name ?? "Cliente sin nombre"}</strong>
                       <span>{client.client?.phone ?? "Sin teléfono"}</span>
                     </li>
                   ))}
