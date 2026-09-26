@@ -5,6 +5,7 @@ import { AdminLoginPage } from "../features/auth/AdminLoginPage";
 import { useAuth } from "../features/auth/AuthProvider";
 import { AdminShell } from "../features/admin/AdminShell";
 import { ClientsPage } from "../features/clientes/ClientsPage";
+import { HistoryPage } from "../features/historial/HistoryPage";
 import { MenusPage } from "../features/menus/MenusPage";
 import { PlatosPage } from "../features/platos/PlatosPage";
 import { resolveRoute } from "./routes";
@@ -50,6 +51,9 @@ function AdminRoute({ path }: { path: AdminPath }) {
       break;
     case "/admin/menus":
       content = <MenusPage />;
+      break;
+    case "/admin/historial":
+      content = <HistoryPage />;
       break;
     default:
       content = <AdminSectionPage path={path} />;
