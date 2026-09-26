@@ -50,6 +50,7 @@ interface ComposerItem {
 
 const EMPTY_VERSION_FORM: VersionFormState = { name: "", price: "" };
 const DISH_SEARCH_DEBOUNCE_MS = 350;
+const DISH_SEARCH_PAGE_SIZE = 8;
 
 function serializeComposer(items: ComposerItem[]): string {
   return items
@@ -78,6 +79,13 @@ export function MenuDrawer({
   const [baselineComposerItems, setBaselineComposerItems] = useState<
     ComposerItem[]
   >([]);
+
+  // Cambia cada vez que el drawer se resetea (se abre para otro menú, o
+  // se abre en modo creación). Forzamos con esto que el buscador de
+  // platos vuelva a traer la lista por defecto, incluso si el término de
+  // búsqueda quedó vacío de la vez anterior (mismo valor no dispara el
+  // efecto por dependencias).
+  const [composerSessionKey, setComposerSessionKey] = useState(0);
 
   const [dishQuery, setDishQuery] = useState("");
   const [dishResults, setDishResults] = useState<DishListItem[]>([]);
@@ -125,6 +133,7 @@ export function MenuDrawer({
     setError(null);
     setVersionError(null);
     setVersionMessage(null);
+    setComposerSessionKey((key) => key + 1);
   }
 
   useEffect(() => {
@@ -245,28 +254,28 @@ export function MenuDrawer({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [menuId, isCreateMode, requestClose]);
 
-  // Búsqueda en vivo de platos para armar la composición. Solo busca
-  // platos activos y solo dispara con texto cargado (no trae todo el
-  // catálogo de entrada).
+  // Búsqueda de platos para armar la composición. Sin texto cargado
+  // muestra directamente los primeros platos activos (sin esperar
+  // debounce); con texto, espera una pausa de tipeo antes de buscar.
+  // `composerSessionKey` fuerza un refetch cada vez que el drawer se
+  // resetea, aunque el término de búsqueda ya estuviera vacío antes.
   useEffect(() => {
     if (dishSearchDebounceRef.current !== null) {
       window.clearTimeout(dishSearchDebounceRef.current);
     }
 
     const trimmed = dishQuery.trim();
+    const delay = trimmed ? DISH_SEARCH_DEBOUNCE_MS : 0;
 
-    if (!trimmed) {
-      setDishResults([]);
-      setDishSearchLoading(false);
-      setDishSearchError(null);
-      return;
-    }
+    setDishSearchLoading(true);
+    setDishSearchError(null);
 
     dishSearchDebounceRef.current = window.setTimeout(() => {
-      setDishSearchLoading(true);
-      setDishSearchError(null);
-
-      void listDishes({ search: trimmed, active: true, pageSize: 8 })
+      void listDishes({
+        search: trimmed || undefined,
+        active: true,
+        pageSize: DISH_SEARCH_PAGE_SIZE,
+      })
         .then((result) => setDishResults(result.items))
         .catch((searchError: unknown) => {
           setDishResults([]);
@@ -277,14 +286,14 @@ export function MenuDrawer({
           );
         })
         .finally(() => setDishSearchLoading(false));
-    }, DISH_SEARCH_DEBOUNCE_MS);
+    }, delay);
 
     return () => {
       if (dishSearchDebounceRef.current !== null) {
         window.clearTimeout(dishSearchDebounceRef.current);
       }
     };
-  }, [dishQuery]);
+  }, [dishQuery, composerSessionKey]);
 
   function updateVersionField<K extends keyof VersionFormState>(
     field: K,
@@ -588,11 +597,20 @@ export function MenuDrawer({
             {dishSearchError}
           </p>
         )}
+        {!dishSearchLoading && !dishSearchError && dishResults.length === 0 && (
+          <p className="menu-composer__hint">
+            {dishQuery.trim()
+              ? "Sin resultados."
+              : "No hay platos activos cargados."}
+          </p>
+        )}
         {!dishSearchLoading &&
           !dishSearchError &&
-          dishQuery.trim() !== "" &&
-          dishResults.length === 0 && (
-            <p className="menu-composer__hint">Sin resultados.</p>
+          dishQuery.trim() === "" &&
+          dishResults.length > 0 && (
+            <p className="menu-composer__hint">
+              Mostrando los primeros platos activos. Escribí para filtrar.
+            </p>
           )}
 
         {dishResults.length > 0 && (

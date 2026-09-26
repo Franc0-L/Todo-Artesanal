@@ -8,6 +8,7 @@ import { ClientsPage } from "../features/clientes/ClientsPage";
 import { HistoryPage } from "../features/historial/HistoryPage";
 import { MenusPage } from "../features/menus/MenusPage";
 import { PlatosPage } from "../features/platos/PlatosPage";
+import { SemanasPage } from "../features/semanas/SemanasPage";
 import { resolveRoute } from "./routes";
 
 function subscribeToLocation(onChange: () => void) {
@@ -51,6 +52,9 @@ function AdminRoute({ path }: { path: AdminPath }) {
       break;
     case "/admin/menus":
       content = <MenusPage />;
+      break;
+    case "/admin/semanas":
+      content = <SemanasPage />;
       break;
     case "/admin/historial":
       content = <HistoryPage />;

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   getUnansweredClients,
   listHistoricalWeeks,
@@ -183,7 +189,8 @@ export function HistoryPage() {
                   <article className="history-week-row">
                     <div>
                       <strong>
-                        {formatDate(week.startDate)} — {formatDate(week.endDate)}
+                        {formatDate(week.startDate)} —{" "}
+                        {formatDate(week.endDate)}
                       </strong>
                       <span>{week.expectedClientCount} clientes esperados</span>
                     </div>
@@ -212,9 +219,13 @@ export function HistoryPage() {
       </div>
 
       {!loading && total > 0 && (
-        <nav className="history-pagination" aria-label="Paginación del historial">
+        <nav
+          className="history-pagination"
+          aria-label="Paginación del historial"
+        >
           <span>
-            Página {page} de {totalPages} · {total} semana{total === 1 ? "" : "s"}
+            Página {page} de {totalPages} · {total} semana
+            {total === 1 ? "" : "s"}
           </span>
           <div>
             <button
@@ -247,7 +258,8 @@ export function HistoryPage() {
               <div>
                 <p>Semana cerrada</p>
                 <h2 id="history-drawer-title">
-                  {formatDate(selectedWeek.startDate)} — {formatDate(selectedWeek.endDate)}
+                  {formatDate(selectedWeek.startDate)} —{" "}
+                  {formatDate(selectedWeek.endDate)}
                 </h2>
               </div>
               <button
@@ -264,10 +276,22 @@ export function HistoryPage() {
             </header>
 
             <dl className="history-summary">
-              <div><dt>Pedidos</dt><dd>{selectedWeek.orderCount}</dd></div>
-              <div><dt>Viandas</dt><dd>{selectedWeek.totalQuantity}</dd></div>
-              <div><dt>Total</dt><dd>{formatAmount(selectedWeek.totalAmount)}</dd></div>
-              <div><dt>Cancelaciones</dt><dd>{selectedWeek.cancellationCount}</dd></div>
+              <div>
+                <dt>Pedidos</dt>
+                <dd>{selectedWeek.orderCount}</dd>
+              </div>
+              <div>
+                <dt>Viandas</dt>
+                <dd>{selectedWeek.totalQuantity}</dd>
+              </div>
+              <div>
+                <dt>Total</dt>
+                <dd>{formatAmount(selectedWeek.totalAmount)}</dd>
+              </div>
+              <div>
+                <dt>Cancelaciones</dt>
+                <dd>{selectedWeek.cancellationCount}</dd>
+              </div>
             </dl>
 
             <section aria-labelledby="history-unanswered-title">
@@ -275,16 +299,23 @@ export function HistoryPage() {
               {unansweredLoading ? (
                 <p className="history-feedback">Cargando…</p>
               ) : unansweredError ? (
-                <p className="history-feedback history-feedback--error" role="alert">
+                <p
+                  className="history-feedback history-feedback--error"
+                  role="alert"
+                >
                   {unansweredError}
                 </p>
               ) : unanswered.length === 0 ? (
-                <p className="history-feedback">Todos los clientes esperados respondieron.</p>
+                <p className="history-feedback">
+                  Todos los clientes esperados respondieron.
+                </p>
               ) : (
                 <ul className="history-unanswered-list">
                   {unanswered.map((client) => (
                     <li key={client.clientId}>
-                      <strong>{client.client?.name ?? "Cliente sin nombre"}</strong>
+                      <strong>
+                        {client.client?.name ?? "Cliente sin nombre"}
+                      </strong>
                       <span>{client.client?.phone ?? "Sin teléfono"}</span>
                     </li>
                   ))}
