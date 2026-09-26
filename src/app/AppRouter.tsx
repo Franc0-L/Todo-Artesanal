@@ -5,6 +5,7 @@ import { AdminLoginPage } from "../features/auth/AdminLoginPage";
 import { useAuth } from "../features/auth/AuthProvider";
 import { AdminShell } from "../features/admin/AdminShell";
 import { ClientsPage } from "../features/clientes/ClientsPage";
+import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { HistoryPage } from "../features/historial/HistoryPage";
 import { MenusPage } from "../features/menus/MenusPage";
 import { PlatosPage } from "../features/platos/PlatosPage";
@@ -44,6 +45,9 @@ function AdminRoute({ path }: { path: AdminPath }) {
 
   let content: ReactNode;
   switch (path) {
+    case "/admin":
+      content = <DashboardPage />;
+      break;
     case "/admin/clientes":
       content = <ClientsPage />;
       break;

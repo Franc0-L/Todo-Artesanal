@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 audit-*.txt
 opencode.json
+AGENTS.md

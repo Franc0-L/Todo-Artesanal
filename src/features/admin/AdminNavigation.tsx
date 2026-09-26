@@ -16,24 +16,27 @@ export function AdminNavigation({
   currentPath: AdminRoutePath;
 }) {
   return (
-    <nav aria-label="Navegación administrativa">
-      <ul>
-        {items.map((item) => {
-          const isCurrent = item.path === currentPath;
+    <nav className="admin-nav" aria-label="Navegación administrativa">
+      <div className="admin-nav__inner">
+        <ul className="admin-nav__list">
+          {items.map((item) => {
+            const isCurrent = item.path === currentPath;
 
-          return (
-            <li key={item.path}>
-              <button
-                type="button"
-                aria-current={isCurrent ? "page" : undefined}
-                onClick={() => navigate(item.path)}
-              >
-                {item.label}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+            return (
+              <li key={item.path} className="admin-nav__item">
+                <button
+                  type="button"
+                  className="admin-nav__button"
+                  aria-current={isCurrent ? "page" : undefined}
+                  onClick={() => navigate(item.path)}
+                >
+                  {item.label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </nav>
   );
 }

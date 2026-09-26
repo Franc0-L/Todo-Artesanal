@@ -1,0 +1,237 @@
+/* =========================================================
+   Layout del Shell Administrativo
+   ========================================================= */
+
+.admin-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8fafc;
+}
+
+/* =========================================================
+   Header Superior
+   ========================================================= */
+
+.admin-shell__header {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.admin-shell__header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+}
+
+.admin-shell__brand:focus-visible {
+  outline: 3px solid #bfdbfe;
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.admin-shell__brand-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #1d4ed8;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+  flex-shrink: 0;
+}
+
+.admin-shell__brand-text {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.admin-shell__brand-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.admin-shell__brand-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.admin-shell__user {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-shell__user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.admin-shell__user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.admin-shell__signout-btn {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #64748b;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-shell__signout-btn:hover {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.admin-shell__signout-btn:focus-visible {
+  outline: 3px solid #fecaca;
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   Barra de Navegación Secundaria
+   ========================================================= */
+
+.admin-nav {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-nav__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin-nav__inner::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-nav__list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: max-content;
+}
+
+.admin-nav__item {
+  position: relative;
+}
+
+.admin-nav__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.admin-nav__button:hover {
+  color: #1e293b;
+  background: transparent;
+}
+
+.admin-nav__button:focus-visible {
+  outline: 3px solid #bfdbfe;
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+.admin-nav__button[aria-current="page"] {
+  color: #1d4ed8;
+  font-weight: 700;
+  border-bottom-color: #1d4ed8;
+}
+
+/* =========================================================
+   Contenedor Principal
+   ========================================================= */
+
+.admin-shell__main {
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .admin-shell__header-inner {
+    padding: 0 16px;
+  }
+
+  .admin-nav__inner {
+    padding: 0 12px;
+  }
+
+  .admin-shell__user-info span {
+    display: none;
+  }
+}
