@@ -4,13 +4,15 @@ import { listOrders } from "../../pedidos/services/orders.service";
 import type { OrderDetail } from "../../pedidos/types/order-detail";
 import { AppError } from "../../../lib/errors";
 
+const PAGE_SIZE = 100;
+
 export interface HistoricalWeekDetail {
   orders: OrderDetail[];
   cancellations: Cancellation[];
 }
 
 /**
- * Obtiene los hechos registrados de una semana cerrada.
+ * Obtiene todos los hechos registrados de una semana cerrada.
  *
  * La consulta se compone a partir de los servicios de pedidos y
  * cancelaciones existentes para mantener una única capa de acceso a
@@ -21,29 +23,49 @@ export async function getHistoricalWeekDetail(
 ): Promise<HistoricalWeekDetail> {
   validateUuid(weekId, "weekId");
 
-  const [ordersResult, cancellationsResult] = await Promise.all([
-    listOrders({ weekId, page: 1, pageSize: 100 }),
-    listCancellations({ weekId, page: 1, pageSize: 100 }),
+  const [orders, cancellations] = await Promise.all([
+    listAllOrders(weekId),
+    listAllCancellations(weekId),
   ]);
 
-  if (ordersResult.total > ordersResult.items.length) {
-    throw new AppError(
-      "BUSINESS_RULE",
-      "La semana contiene más pedidos de los que puede mostrar el detalle histórico.",
-    );
-  }
+  return { orders, cancellations };
+}
 
-  if (cancellationsResult.total > cancellationsResult.items.length) {
-    throw new AppError(
-      "BUSINESS_RULE",
-      "La semana contiene más cancelaciones de las que puede mostrar el detalle histórico.",
-    );
-  }
+async function listAllOrders(weekId: string): Promise<OrderDetail[]> {
+  const firstPage = await listOrders({ weekId, page: 1, pageSize: PAGE_SIZE });
+  const totalPages = Math.ceil(firstPage.total / PAGE_SIZE);
 
-  return {
-    orders: ordersResult.items,
-    cancellations: cancellationsResult.items,
-  };
+  if (totalPages <= 1) return firstPage.items;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      listOrders({ weekId, page: index + 2, pageSize: PAGE_SIZE }),
+    ),
+  );
+
+  return [firstPage.items, ...remainingPages.map((page) => page.items)].flat();
+}
+
+async function listAllCancellations(weekId: string): Promise<Cancellation[]> {
+  const firstPage = await listCancellations({
+    weekId,
+    page: 1,
+    pageSize: PAGE_SIZE,
+  });
+  const totalPages = Math.ceil(firstPage.total / PAGE_SIZE);
+
+  if (totalPages <= 1) return firstPage.items;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      listCancellations({ weekId, page: index + 2, pageSize: PAGE_SIZE }),
+    ),
+  );
+
+  return [
+    firstPage.items,
+    ...remainingPages.map((page) => page.items),
+  ].flat();
 }
 
 function validateUuid(value: string, fieldName: string): void {
