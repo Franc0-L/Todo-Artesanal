@@ -78,6 +78,19 @@
   color: var(--text-muted);
   font-size: 0.78rem;
 }
+.week-day-column__header::after {
+  content: "Disponible para pedidos General u Opcional";
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 5px;
+  padding: 3px 7px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
 
 .week-day-column__options {
   display: grid;
