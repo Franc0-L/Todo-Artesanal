@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { AdminNavigation } from "./AdminNavigation";
 import { navigate, type AdminRoutePath } from "../../app/routes";
+import { useTheme } from "../../lib/theme";
 import "./admin-shell.css";
 
 export function AdminShell({
@@ -12,6 +13,7 @@ export function AdminShell({
   currentPath: AdminRoutePath;
 }) {
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   async function handleSignOut() {
     try {
@@ -33,9 +35,13 @@ export function AdminShell({
             onClick={() => navigate("/admin")}
             aria-label="Ir al panel de inicio"
           >
-            <div className="admin-shell__brand-logo" aria-hidden="true">
-              TA
-            </div>
+            <img
+              src="/favicon.png"
+              alt="Mascota Todo Artesanal"
+              className="admin-shell__brand-logo-img"
+              width="34"
+              height="34"
+            />
             <div className="admin-shell__brand-text">
               <strong className="admin-shell__brand-name">
                 Todo Artesanal
@@ -45,6 +51,16 @@ export function AdminShell({
           </button>
 
           <div className="admin-shell__user">
+            <button
+              type="button"
+              className="admin-shell__theme-btn"
+              onClick={toggleTheme}
+              aria-label={`Cambiar a modo ${theme === "dark" ? "claro" : "oscuro"}`}
+              title={`Modo ${theme === "dark" ? "claro" : "oscuro"}`}
+            >
+              <span aria-hidden="true">{theme === "dark" ? "☀️" : "🌙"}</span>
+            </button>
+
             <div
               className="admin-shell__user-info"
               title={user?.email ?? undefined}
@@ -54,6 +70,7 @@ export function AdminShell({
               </div>
               <span>{user?.email ?? "Administrador"}</span>
             </div>
+
             <button
               type="button"
               className="admin-shell__signout-btn"

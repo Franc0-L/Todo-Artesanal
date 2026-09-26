@@ -24,6 +24,14 @@
   color: #26352a;
 }
 
+.admin-login__brand-logo {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.75rem;
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
 .admin-login__brand-mark {
   display: grid;
   width: 2.5rem;
@@ -87,7 +95,9 @@
   color: #202b23;
   font: inherit;
   outline: none;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .admin-login__field input:focus {
@@ -126,7 +136,9 @@
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 120ms ease, opacity 120ms ease;
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease;
 }
 
 .admin-login__submit:hover:not(:disabled) {

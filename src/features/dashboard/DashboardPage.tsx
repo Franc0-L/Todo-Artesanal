@@ -177,28 +177,39 @@ export function DashboardPage() {
               className="dashboard-hero dashboard-hero--empty"
               aria-labelledby="no-active-week-heading"
             >
-              <div className="dashboard-hero__title-group">
-                <h2 id="no-active-week-heading">
-                  No hay una semana activa actualmente
-                </h2>
-                <span className="dashboard-status-badge dashboard-status-badge--neutral">
-                  Inactivo
-                </span>
+              <div className="dashboard-hero--empty-layout">
+                <img
+                  src="/favicon.png"
+                  alt="Mascota Todo Artesanal"
+                  className="dashboard-hero__empty-mascot"
+                  width="72"
+                  height="72"
+                />
+                <div className="dashboard-hero__empty-body">
+                  <div className="dashboard-hero__title-group">
+                    <h2 id="no-active-week-heading">
+                      No hay una semana activa actualmente
+                    </h2>
+                    <span className="dashboard-status-badge dashboard-status-badge--neutral">
+                      Inactivo
+                    </span>
+                  </div>
+                  <p>
+                    {data.hasDraftWeek
+                      ? "Existe al menos una semana en borrador esperando ser configurada o activada para abrir la toma de pedidos."
+                      : "No hay períodos activos ni borradores pendientes. Creá una nueva semana para configurar la oferta semanal."}
+                  </p>
+                  <button
+                    className="dashboard-primary-action"
+                    type="button"
+                    onClick={() => navigate("/admin/semanas")}
+                  >
+                    {data.hasDraftWeek
+                      ? "Revisar borradores"
+                      : "Crear nueva semana"}
+                  </button>
+                </div>
               </div>
-              <p>
-                {data.hasDraftWeek
-                  ? "Existe al menos una semana en borrador esperando ser configurada o activada para abrir la toma de pedidos."
-                  : "No hay períodos activos ni borradores pendientes. Creá una nueva semana para configurar la oferta semanal."}
-              </p>
-              <button
-                className="dashboard-primary-action"
-                type="button"
-                onClick={() => navigate("/admin/semanas")}
-              >
-                {data.hasDraftWeek
-                  ? "Revisar borradores"
-                  : "Crear nueva semana"}
-              </button>
             </article>
           )}
           {/* Resumen del Catálogo y Clientes */}

@@ -40,7 +40,13 @@ export function AdminLoginPage() {
     <main className="admin-login" aria-labelledby="admin-login-title">
       <section className="admin-login__card">
         <div className="admin-login__brand" aria-hidden="true">
-          <span className="admin-login__brand-mark">TA</span>
+          <img
+            src="/favicon.png"
+            alt="Mascota Todo Artesanal"
+            className="admin-login__brand-logo"
+            width="44"
+            height="44"
+          />
           <span>Todo Artesanal</span>
         </div>
 
