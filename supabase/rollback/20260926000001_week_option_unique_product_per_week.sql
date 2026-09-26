@@ -2,9 +2,8 @@
 -- Ejecutar solo si se decide revertir esa migración.
 --
 -- IMPORTANTE: la migración original eliminó un duplicado existente de
--- week_day_options porque no tenía pedidos. Este rollback lo restaura.
--- Si ese dato fue modificado/eliminado posteriormente, revisar antes de
--- ejecutar este script.
+-- week_day_options porque no tenía pedidos. El rollback del dato requiere
+-- conocer el week_day_id exacto de ese registro antes de restaurarlo.
 
 begin;
 
@@ -13,23 +12,22 @@ on public.week_day_options;
 
 drop function if exists public.validate_week_day_option_product_uniqueness();
 
-insert into public.week_day_options (
-  id,
-  week_day_id,
-  option_type,
-  dish_version_id,
-  menu_version_id
-)
-values (
-  'ee4776b4-d5e5-4266-aed2-79edbba2fe5d',
-  'fijar_el_week_day_id_original_si_se_requiere',
-  'menu',
-  null,
-  '0e3d68a0-40b3-48e6-a0c4-6278864c57fb'
-)
--- El week_day_id exacto del duplicado debe verificarse antes de ejecutar.
--- Esta fila no se puede restaurar automáticamente sin conservar ese UUID.
-where false;
+-- La fila eliminada fue:
+--   id              = ee4776b4-d5e5-4266-aed2-79edbba2fe5d
+--   option_type     = menu
+--   menu_version_id = 0e3d68a0-40b3-48e6-a0c4-6278864c57fb
+--
+-- Restaurarla manualmente después de verificar el week_day_id original:
+--
+-- insert into public.week_day_options (
+--   id, week_day_id, option_type, dish_version_id, menu_version_id
+-- ) values (
+--   'ee4776b4-d5e5-4266-aed2-79edbba2fe5d',
+--   '<WEEK_DAY_ID_ORIGINAL>',
+--   'menu',
+--   null,
+--   '0e3d68a0-40b3-48e6-a0c4-6278864c57fb'
+-- );
 
 -- Restaurar activate_week a la versión anterior a esta migración.
 create or replace function public.activate_week(p_week_id uuid)
@@ -104,7 +102,3 @@ end;
 $$;
 
 commit;
-
--- No ejecutar este archivo a ciegas: el week_day_id del registro eliminado
--- debe obtenerse del historial/backup antes de restaurarlo. El INSERT anterior
--- está deliberadamente condicionado con WHERE false para evitar inventar datos.
