@@ -85,7 +85,6 @@ export function DashboardPage() {
 
       {!loading && data && (
         <div className="dashboard-content">
-          {/* Card Destacada: Estado de la Semana Activa */}
           {data.activeWeek ? (
             <article
               className="dashboard-hero"
@@ -169,6 +168,18 @@ export function DashboardPage() {
 
                 <div className="dashboard-kpi-card">
                   <span className="dashboard-kpi-card__label">
+                    Sin responder
+                  </span>
+                  <span className="dashboard-kpi-card__value">
+                    {data.activeWeek.unansweredClientCount}
+                  </span>
+                  <span className="dashboard-kpi-card__meta">
+                    clientes esperados pendientes
+                  </span>
+                </div>
+
+                <div className="dashboard-kpi-card">
+                  <span className="dashboard-kpi-card__label">
                     Cancelaciones
                   </span>
                   <span className="dashboard-kpi-card__value">
@@ -221,7 +232,7 @@ export function DashboardPage() {
               </div>
             </article>
           )}
-          {/* Resumen del Catálogo y Clientes */}
+
           <section
             className="dashboard-section"
             aria-labelledby="overview-heading"
@@ -266,7 +277,6 @@ export function DashboardPage() {
             </div>
           </section>
 
-          {/* Accesos Rápidos Operativos */}
           <section
             className="dashboard-section"
             aria-labelledby="shortcuts-heading"
