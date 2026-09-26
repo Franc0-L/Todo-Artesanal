@@ -32,6 +32,21 @@
   gap: 8px;
 }
 
+.week-drawer .dish-form__fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.week-drawer .dish-form__fields > label {
+  min-width: 0;
+}
+
+.week-drawer input[type="date"] {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 .week-offer-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(180px, 1fr));
@@ -245,6 +260,10 @@
 }
 
 @media (max-width: 720px) {
+  .week-drawer .dish-form__fields {
+    grid-template-columns: 1fr;
+  }
+
   .week-offer-grid {
     grid-template-columns: 1fr;
     overflow-x: visible;
