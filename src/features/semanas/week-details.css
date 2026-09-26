@@ -25,7 +25,7 @@
 .week-day-column__option-name { grid-column:1/-1; grid-row:2; overflow-wrap:anywhere; font-weight:600; color:var(--text-main); }
 .week-day-column__option-name::before { display:inline-flex; margin-right:7px; padding:2px 6px; border-radius:999px; font-size:.62rem; font-weight:800; vertical-align:middle; }
 .week-day-column__option:nth-child(1) .week-day-column__option-name::before { content:"General"; background:var(--primary-subtle); color:var(--primary); }
-.week-day-column__option:nth-child(2) .week-day-column__option-name::before { content:"Opcional"; background:var(--accent-subtle); color:var(--accent); }
+.week-day-column__option:nth-child(2) .week-day-column__option-name::before { content:"Opcional"; background:var(--bg-subtle); color:var(--accent); border:1px solid var(--border-subtle); }
 .week-day-column__option > span:nth-child(2) { grid-row:1; grid-column:2; justify-self:end; color:var(--text-soft); white-space:nowrap; }
 .week-day-column__option button { grid-row:1; grid-column:3; width:20px; height:20px; border:1px solid var(--border-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-muted); font-size:.85rem; line-height:1; cursor:pointer; }
 .week-day-column__option button:hover:not(:disabled) { background:var(--danger-bg); border-color:var(--danger-border); color:var(--danger-text); }
