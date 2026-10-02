@@ -56,7 +56,7 @@ la media vianda puede además tomarse del catálogo.
   `NULL` de `week_day_option_id` no colisionan.
 - La UI de cliente solo expone la media vianda **desde la oferta**: el RLS
   del cliente no le permite ver todo el catálogo (ver pendiente en
-  `docs/estado-fases-1-5.md`).
+  `docs/estado-fases-1-6.md`).
 
 ## Alternativas consideradas
 

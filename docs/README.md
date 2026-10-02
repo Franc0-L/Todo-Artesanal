@@ -4,18 +4,18 @@
 
 ## Qué contiene cada documento
 
-| Documento             | Qué es                                                                                                                                  | Se actualiza cuando…                                       |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `historico/`          | Material histórico archivado: el contrato original (`prompt.md`) y decisiones ya no vigentes. **No se actualiza.**                       | Al archivar algo que deja de aplicar.                      |
-| `dominio.md`          | Síntesis operativa del dominio: separación oferta/cliente/pedido/historial, precios, invariantes.                                       | Cambia una regla o aparece una decisión de dominio.        |
-| `glosario.md`         | Definiciones cortas de los términos.                                                                                                    | Aparece un término nuevo o cambia su significado.          |
-| `modelo-datos.md`     | Esquema PostgreSQL real: tablas, columnas, constraints, índices, triggers y migraciones.                                                | Cambia el esquema o se agrega una migración.               |
-| `flujos.md`           | Secuencias operativas paso a paso (con `mermaid`) y qué invariantes usan.                                                               | Cambia el proceso de un flujo o se agrega uno.             |
-| `arquitectura.md`     | Capas, límites, patrones de datos en la UI, Edge Functions, diagrama de features.                                                       | Cambia una decisión técnica o aparece un patrón nuevo.     |
-| `servicios.md`        | Catálogo de la capa de servicios: funciones, firmas, RPCs y Edge Functions invocadas.                                                   | Se agrega o cambia una función de servicio.                |
-| `estado-fases-1-5.md` | **Estado consolidado del proyecto**: qué fase está hecha, inventario de migraciones/servicios/UI y pendientes.                          | Se completa una fase o cambia el estado real.              |
+| Documento             | Qué es                                                                                                                                           | Se actualiza cuando…                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `historico/`          | Material histórico archivado: el contrato original (`prompt.md`) y decisiones ya no vigentes. **No se actualiza.**                               | Al archivar algo que deja de aplicar.                  |
+| `dominio.md`          | Síntesis operativa del dominio: separación oferta/cliente/pedido/historial, precios, invariantes.                                                | Cambia una regla o aparece una decisión de dominio.    |
+| `glosario.md`         | Definiciones cortas de los términos.                                                                                                             | Aparece un término nuevo o cambia su significado.      |
+| `modelo-datos.md`     | Esquema PostgreSQL real: tablas, columnas, constraints, índices, triggers y migraciones.                                                         | Cambia el esquema o se agrega una migración.           |
+| `flujos.md`           | Secuencias operativas paso a paso (con `mermaid`) y qué invariantes usan.                                                                        | Cambia el proceso de un flujo o se agrega uno.         |
+| `arquitectura.md`     | Capas, límites, patrones de datos en la UI, Edge Functions, diagrama de features.                                                                | Cambia una decisión técnica o aparece un patrón nuevo. |
+| `servicios.md`        | Catálogo de la capa de servicios: funciones, firmas, RPCs y Edge Functions invocadas.                                                            | Se agrega o cambia una función de servicio.            |
+| `estado-fases-1-6.md` | **Estado consolidado del proyecto**: qué fase está hecha, inventario de migraciones/servicios/UI y pendientes.                                   | Se completa una fase o cambia el estado real.          |
 | `decisiones/`         | Decisiones puntuales y fechadas de dominio o técnica (ej: `20260926-oferta-general-opcional.md`, `20261001-fuera-de-horario-cutoff-por-dia.md`). | Se cierra una decisión que afecta reglas o el proceso. |
-| `adr/`                | Architecture Decision Records (formato en `adr/README.md`).                                                                             | Se toma una decisión técnica relevante.                    |
+| `adr/`                | Architecture Decision Records (formato en `adr/README.md`).                                                                                      | Se toma una decisión técnica relevante.                |
 
 ## Convenciones
 
@@ -27,7 +27,7 @@
 - Los cambios de dominio se documentan en dos lugares: la regla en sí en
   `dominio.md` / `glosario.md`, y su contexto en `decisiones/`. Las
   decisiones de proceso/técnica viven
-  solo en `decisiones/` y se enlazan desde `estado-fases-1-5.md`.
+  solo en `decisiones/` y se enlazan desde `estado-fases-1-6.md`.
 
 ## Orden sugerido de lectura
 
@@ -35,4 +35,4 @@
 2. `dominio.md` + `glosario.md` para entender el lenguaje.
 3. `modelo-datos.md` + `arquitectura.md` para el diseño.
 4. `servicios.md` + `flujos.md` para operar.
-5. `estado-fases-1-5.md` para saber qué está hecho y qué falta.
+5. `estado-fases-1-6.md` para saber qué está hecho y qué falta.

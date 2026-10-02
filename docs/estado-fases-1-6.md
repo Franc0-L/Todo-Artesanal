@@ -464,7 +464,6 @@ Detalle completo en `docs/decisiones/20260926-oferta-general-opcional.md`.
   (advisory lock transaccional por semana) **y** un chequeo agregado en
   `activate_week` (ambos presentes en la cadena consolidada).
 
-
 ---
 
 # Fase 5 — Implementación backend (completa)
@@ -479,9 +478,9 @@ inventario en "Archivos SQL generados", al final):
 | `20261002000001_schema`            | schemas, tablas, constraints, índices, RLS     |
 | `20261002000002_functions_private` | funciones de `private` (helpers + trigger fns) |
 | `20261002000003_triggers`          | triggers de dominio                            |
-| `20261002000004_rls`               | policies                                        |
-| `20261002000005_rpc_admin`         | RPCs de admin/catálogo/precio interno           |
-| `20261002000006_rpc_client`        | RPCs de cliente (`security definer`)            |
+| `20261002000004_rls`               | policies                                       |
+| `20261002000005_rpc_admin`         | RPCs de admin/catálogo/precio interno          |
+| `20261002000006_rpc_client`        | RPCs de cliente (`security definer`)           |
 
 - Proyecto Supabase: `Todo-Artesanal` (linkeado).
 - 15 tablas en `public` + `private.admin_users` en `private`.

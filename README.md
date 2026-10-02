@@ -28,10 +28,16 @@ arman su pedido de la semana activa.
 - ✅ **Fases 1–4** — Dominio, modelo conceptual, modelo PostgreSQL, RLS, funciones y triggers.
 - ✅ **Fase 5** — Migraciones, tipos, servicios y las dos Edge Functions (`rotate-client-token`, `authenticate-client-token`).
 - ✅ **Fase 6** — UI de admin completa (`/admin`) y UI de cliente en `/menu/:token` (oferta, pedidos, cancelaciones y media vianda del catálogo).
-- ⏳ **Pendiente** — tests de invariantes, verificación del camino de éxito
-  del JWT con un enlace real (la UI ya lo consume), reportes.
+- ⏳ **Pendiente** — tests de invariantes y reportes.
 
-Ver `docs/estado-fases-1-5.md` para el estado consolidado completo
+**Verificación end-to-end (2026-10-02):** con el proyecto Supabase
+`zarvihhrzfcvlegqygnu` se validó el ciclo completo por API: login admin →
+`is_user_admin` → `rotate-client-token` → `authenticate-client-token` (JWT
+**ES256**) → lecturas de cliente (`week_days`, `list_client_catalog`,
+`calculate_my_order_price`) → escritura de pedidos y cancelaciones con sus
+invariantes (precio congelado, exclusión mutua, RLS).
+
+Ver `docs/estado-fases-1-6.md` para el estado consolidado completo
 (incluida la **reconciliación de migraciones**) y `docs/README.md` para
 el índice de documentación.
 
@@ -246,7 +252,7 @@ Ver `docs/arquitectura.md` y `docs/modelo-datos.md`.
 
 ## Testing
 
-No hay tests automatizados todavía. Ver `docs/estado-fases-1-5.md` sección
+No hay tests automatizados todavía. Ver `docs/estado-fases-1-6.md` sección
 "Pendientes" para el plan de tests de invariantes.
 
 Verificación manual disponible:
@@ -265,7 +271,7 @@ Toda la documentación está en `docs/` (índice completo en
 `docs/README.md`):
 
 - **`historico/prompt.md`** — Contrato completo del proyecto (histórico, no se actualiza).
-- **`estado-fases-1-5.md`** — Estado consolidado: qué está hecho, inventario de migraciones/servicios/UI y pendientes.
+- **`estado-fases-1-6.md`** — Estado consolidado: qué está hecho, inventario de migraciones/servicios/UI y pendientes.
 - **`arquitectura.md`** — Capas, patrones de datos, Edge Functions y diagramas.
 - **`dominio.md`** — Conceptos, invariantes y reglas del negocio.
 - **`modelo-datos.md`** — Esquema PostgreSQL, ERD y migraciones.
