@@ -165,11 +165,10 @@ npx supabase db push --dry-run   # revisar primero
 npx supabase db push --yes
 ```
 
-> ⚠️ **No correr `db push` contra el proyecto remoto actual**
-> (`dnkgmwyrvhkablbzsofb`): conserva la cadena vieja (20 migraciones) y
-> divergiría. La cadena consolidada se aplica sobre un proyecto Supabase
-> **nuevo** (rearranque); `migration list` mostrará las 6 como "solo local"
-> hasta entonces.
+> Proyecto linkeado: **`zarvihhrzfcvlegqygnu`** (`Todo-Artesanal`). Las 6
+> migraciones ya están aplicadas y `npx supabase migration list` muestra
+> local y remoto en sync. La cadena vieja (20 migraciones) quedó en el repo
+> `Todo-Artesanal-Legacy`.
 
 ### Regenerar tipos TypeScript
 
