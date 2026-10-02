@@ -188,6 +188,35 @@ npx supabase gen types typescript --linked > src/types/database.ts
 
 ---
 
+### Consultas SQL directas
+
+`npx supabase db query` **no conecta desde esta red**: el host directo
+`db.<project-ref>.supabase.co` publica únicamente un registro AAAA (IPv6) y
+este equipo no tiene IPv6; además el DNS del ISP secuestra los nombres
+desconocidos (`…supabase.co.com.ar`). El error es
+`getaddrinfo ENOTFOUND db.<project-ref>.supabase.co`.
+
+La vía que sí funciona es el **pooler** con `psql` (puerto `5432`, modo
+_session_: admite transacciones y DDL):
+
+```bash
+PGPASSWORD=<db-password> psql \
+  -h aws-0-sa-east-1.pooler.supabase.com -p 5432 \
+  -U postgres.<project-ref> -d postgres \
+  -c "<consulta>"
+```
+
+El host del pooler queda en `supabase/.temp/pooler-url`. Por eso
+`supabase db push` y `migration list` **sí** funcionan (usan ese pooler) y
+`db query` no.
+
+> Si alguna vez hace falta borrar datos de prueba, ojo: `dish_versions` y
+> `menu_versions` son **inmutables por trigger** (`prevent_*_version_mutation`),
+> así que un `DELETE` por REST/SQL siempre se rechaza. `TRUNCATE` no dispara
+> triggers de fila y es el camino para limpiar artefactos propios.
+
+---
+
 ## Edge Functions
 
 ### `rotate-client-token`
