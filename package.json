@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "env:local": "node scripts/switch-env.mjs local",
+    "env:cloud": "node scripts/switch-env.mjs cloud",
+    "supabase:start": "node scripts/supabase-start.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.0",

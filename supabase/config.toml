@@ -165,7 +165,7 @@ jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
 # jwt_issuer = ""
 # Path to JWT signing key. DO NOT commit your signing keys file to git.
-# signing_keys_path = "./signing_keys.json"
+signing_keys_path = "./signing_keys.json"
 # If disabled, the refresh token will never expire.
 enable_refresh_token_rotation = true
 # Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
@@ -381,8 +381,12 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
-# [edge_runtime.secrets]
-# secret_key = "env(SECRET_VALUE)"
+# Secretos locales de las Edge Functions. Los valores NO viven en este
+# archivo: se resuelven con env(VAR) desde el proceso que corre
+# `supabase start` (ver README → "Probar localmente").
+[edge_runtime.secrets]
+CLIENT_JWT_PRIVATE_KEY_JWK = "env(CLIENT_JWT_PRIVATE_KEY_JWK)"
+CLIENT_JWT_KID = "env(CLIENT_JWT_KID)"
 
 [analytics]
 enabled = true

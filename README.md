@@ -147,6 +147,64 @@ npm run preview     # sirve el build de producción local
 
 ---
 
+### Probar localmente (stack de Docker)
+
+El stack local es **independiente** del proyecto en la nube: `project_id`
+`todo-artesanal`, su propia base (las 6 migraciones) y su propio admin.
+
+```bash
+npm run supabase:start   # stack local + secretos de Edge Functions
+npm run env:local        # .env.local apunta a 127.0.0.1:54321
+npm run dev              # http://localhost:5173
+```
+
+`npm run env:cloud` vuelve el frontend al proyecto en la nube.
+
+**Por qué `npm run supabase:start` y no `npx supabase start`:** los secretos
+de las Edge Functions viven en `supabase/.env.local` (gitignored) y llegan al
+contenedor por la resolución `env(VAR)` de `[edge_runtime.secrets]` en
+`supabase/config.toml`. Sin esas variables el arranco **termina OK igual**,
+pero `authenticate-client-token` falla recién cuando lo llamás, con
+_"Configuración del servidor incompleta"_. El script corta de arranque si
+falta el archivo.
+
+**Por qué `signing_keys_path`** (en `config.toml`): GoTrue local debe servir
+la clave pública en su JWKS para que el PostgREST local valide el **JWT
+ES256** que emite el cliente. Apunta a `supabase/signing_keys.json`, que
+guarda la JWK en forma de array (`[{...}]`).
+
+**Archivos locales** (gitignored, no viajan en git — hay que crearlos en cada
+clone):
+
+| Archivo                      | Contenido                                                              |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `supabase/.env.local`        | `CLIENT_JWT_PRIVATE_KEY_JWK` (objeto JWK, no array) + `CLIENT_JWT_KID` |
+| `supabase/signing_keys.json` | `[` + esa misma JWK + `]`                                              |
+| `.env.local`                 | URL y publishable key del frontend (lo escribe `npm run env:*`)        |
+
+**Credenciales locales:** el mismo admin que en la nube
+(`francoleonettu123@gmail.com`). El usuario se crea contra el Auth local y
+se habilita con una fila en `private.admin_users`.
+
+> ⚠️ **`npx supabase db reset` recrea la base y borra `auth.users` y
+> `private.admin_users`.** Para volver a sembrar el admin:
+>
+> ```bash
+> # SERVICE_ROLE_KEY lo da: npx supabase status -o env
+> curl -sX POST http://127.0.0.1:54321/auth/v1/admin/users \
+>   -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+>   -H "Content-Type: application/json" \
+>   -d '{"email":"<mail>","password":"<pass>","email_confirm":true}'
+>
+> docker exec -i supabase_db_todo-artesanal psql -U postgres -d postgres \
+>   -c "insert into private.admin_users (user_id) values ('<id>') on conflict do nothing;"
+> ```
+
+La base local no viene con datos: `supabase stop` preserva el volumen, pero
+`db reset` la deja vacía (migraciones 6/6, 15 tablas `public`).
+
+---
+
 ## Base de datos
 
 ### Migraciones
