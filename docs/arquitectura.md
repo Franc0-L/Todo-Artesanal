@@ -181,6 +181,7 @@ flowchart LR
         A10[calculate_catalog_<br/>media_vianda_price]
         A11[calculate_my_order_price]
         A12[list_client_catalog]
+        A13[get_week_report]
     end
 
     subgraph Privadas
@@ -208,6 +209,7 @@ flowchart LR
     A5 --> B1
     A6 --> B1
     A7 --> B1
+    A13 --> B1
     A8 -->|consulta| B2
     C8 -->|ejecuta| A9
 ```
@@ -286,6 +288,7 @@ flowchart TB
         H1[history.service]
         H2[historical-week-detail.service]
         D1[dashboard.service]
+        R1[reports.service]
     end
 
     subgraph "Sesión y acceso"
@@ -307,6 +310,7 @@ flowchart TB
     S3 -.->|lee| M2
     O1 -.->|escribe| S3
     X1 -.->|escribe| S2
+    R1 -.->|RPC get_week_report| A13
 ```
 
 No todas las features tienen servicio: `dashboard` y `menu` orquestan
@@ -335,5 +339,9 @@ El estado de carga/error de los listados se **deriva en el render**, no se sincr
   (`/menu/:token`) y refresca por `reload()` (incluido el auto-`reload()`
   al llegar cada corte de horario). Si algún día hace falta push real,
   definir qué tablas se suscriben.
-- **Vistas o RPC de reportes:** varios servicios calculan agregados en cliente (dish-usage, order totals, historical weeks, dashboard). Migrar a vistas o RPC si el volumen crece.
+- **Vistas o RPC de reportes:** el reporte semanal de montos ya agrega en
+  PostgreSQL (`get_week_report`, migración `20261002000007` + página
+  `/admin/reportes`). Otros servicios siguen calculando agregados en cliente
+  (dish-usage, order totals, historical weeks, dashboard): migrar si el
+  volumen crece.
 - **Revocación inmediata de JWT:** hoy un JWT emitido sigue válido hasta 1 h aunque el admin rote el link.

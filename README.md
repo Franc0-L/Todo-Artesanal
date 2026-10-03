@@ -28,7 +28,8 @@ arman su pedido de la semana activa.
 - ✅ **Fases 1–4** — Dominio, modelo conceptual, modelo PostgreSQL, RLS, funciones y triggers.
 - ✅ **Fase 5** — Migraciones, tipos, servicios y las dos Edge Functions (`rotate-client-token`, `authenticate-client-token`).
 - ✅ **Fase 6** — UI de admin completa (`/admin`) y UI de cliente en `/menu/:token` (oferta, pedidos, cancelaciones y media vianda del catálogo).
-- ⏳ **Pendiente** — tests de invariantes y reportes.
+- ✅ **Fase 7A** — Reportes: montos consolidados en PostgreSQL (RPC `get_week_report`) y página `/admin/reportes`.
+- ⏳ **Fase 7B** — Tests de invariantes contra la DB real (pgTAP + `supabase test db`).
 
 **Verificación end-to-end (2026-10-02):** con el proyecto Supabase
 `zarvihhrzfcvlegqygnu` se validó el ciclo completo por API: login admin →
@@ -36,6 +37,10 @@ arman su pedido de la semana activa.
 **ES256**) → lecturas de cliente (`week_days`, `list_client_catalog`,
 `calculate_my_order_price`) → escritura de pedidos y cancelaciones con sus
 invariantes (precio congelado, exclusión mutua, RLS).
+
+**Reportes (2026-10-02):** `get_week_report` verificado por PostgREST con JWT de
+admin (devuelve el payload completo) y con un usuario `authenticated` sin fila
+en `private.admin_users` (rechaza con `P0001`).
 
 Ver `docs/estado-fases-1-6.md` para el estado consolidado completo
 (incluida la **reconciliación de migraciones**) y `docs/README.md` para
@@ -339,8 +344,10 @@ Ver `docs/arquitectura.md` y `docs/modelo-datos.md`.
 
 ## Testing
 
-No hay tests automatizados todavía. Ver `docs/estado-fases-1-6.md` sección
-"Pendientes" para el plan de tests de invariantes.
+No hay tests automatizados todavía. La Fase 7B los agrega con **pgTAP** sobre el
+stack local (`npx supabase test db`, con Docker levantado). Ver
+`docs/estado-fases-1-6.md` sección "Pendientes" para el plan de tests de
+invariantes.
 
 Verificación manual disponible:
 
@@ -366,7 +373,7 @@ Toda la documentación está en `docs/` (índice completo en
 - **`servicios.md`** — Catálogo de la capa de servicios.
 - **`glosario.md`** — Términos del dominio.
 - **`decisiones/`** — Decisiones de dominio fechadas.
-- **`adr/`** — Architecture Decision Records (`001` escrito; `002`–`005` pendientes).
+- **`adr/`** — Architecture Decision Records (`001`–`005` escritos).
 
 ---
 
@@ -386,6 +393,7 @@ Resumen del ciclo de una semana:
 6. Admin cierra la semana             → closeWeek
      └─ datos históricos inmutables
 7. Admin consulta historial           → getClientHistory / listHistoricalWeeks
+8. Admin consulta montos consolidados → getWeekReport (RPC get_week_report)
 ```
 
 Ver `docs/flujos.md` para el detalle de cada paso.
@@ -414,6 +422,10 @@ Ver `docs/flujos.md` para el detalle de cada paso.
 - [x] UI de oferta y pedidos en `/menu/:token`
 - [x] Media vianda desde el catálogo para el cliente (RPC
       `list_client_catalog` + `ClientCatalogPicker`)
+- [x] **Reportes** (2026-10-02): montos consolidados en PostgreSQL con el RPC
+      `get_week_report` (migración `20261002000007_rpc_reports`) y página
+      `/admin/reportes` (totales, por día, modalidad, producto, cliente y sin
+      responder)
 - [ ] Tests de invariantes contra la DB real
 - [x] ADRs `001`–`005` escritos (`versionado-inmutable`,
       `media-vianda-es-modalidad`, `precio-congelado-en-pedido`,

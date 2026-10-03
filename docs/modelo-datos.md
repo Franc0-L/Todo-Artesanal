@@ -425,9 +425,10 @@ Igual que `orders`. El historial se preserva.
 
 ## Migraciones
 
-Las migraciones son **6 archivos por responsabilidad** (consolidados
-2026-10-02). Reproducen exactamente el esquema final: `db reset` + diff de
-`pg_dump --schema-only` contra la baseline = **0 diferencias**.
+Las migraciones son **6 archivos de esquema por responsabilidad** (consolidados
+2026-10-02) más las migraciones incrementales posteriores. Reproducen
+exactamente el esquema final: `db reset` + diff de `pg_dump --schema-only`
+contra la baseline = **0 diferencias**.
 
 | Archivo                            | Qué aporta                                                              |
 | ---------------------------------- | ----------------------------------------------------------------------- |
@@ -437,7 +438,28 @@ Las migraciones son **6 archivos por responsabilidad** (consolidados
 | `20261002000004_rls`               | 30 policies (frontera de seguridad)                                     |
 | `20261002000005_rpc_admin`         | RPCs de admin/catálogo/precio interno                                   |
 | `20261002000006_rpc_client`        | RPCs de cliente (`security definer`)                                    |
+| `20261002000007_rpc_reports`       | RPC de reportes: `get_week_report(uuid) → jsonb` (solo admin)           |
 
 Incluye desde el esquema base: `offer_modality` (General/Opcional), producto
 único por semana, `validate_order` en modo normalización, `week_day_id` en
 `orders`/`cancellations` y `week_days.cutoff_at` (fuera de horario).
+
+### `get_week_report(p_week_id uuid) → jsonb`
+
+Reporte de montos consolidados de una semana, `SECURITY DEFINER` y guardado
+por `private.is_admin()` (el rol `authenticated` también lo tienen los
+clientes, pero sin fila en `private.admin_users` la función corta con
+`raise exception`). Devuelve **una sola fila `jsonb`** con:
+
+- `totals`: `order_count`, `total_quantity`, `total_amount`,
+  `cancellation_count`, `expected_client_count`, `responding_client_count`,
+  `unanswered_client_count`.
+- `by_day[]`: los 5 días (incluso sin pedidos) con `quantity`, `amount`,
+  `order_count`, `cancellation_count`, `unanswered_count`.
+- `by_modality[]`, `by_product[]` (con `source` = `option | dish | menu`),
+  `by_client[]` y `unanswered[]`.
+
+Los montos salen **siempre** de `orders.applied_price`
+(`SUM(quantity × applied_price)`): agrega, nunca recalcula precio (ADR-003).
+Los "sin responder" se computan contra `week_expected_clients`, nunca contra
+`clients.active` (ADR-005).

@@ -20,7 +20,9 @@
 ## Convenciones
 
 - Español rioplatense, Markdown en UTF-8, formateado con
-  `npx prettier --write docs/<archivo>.md`.
+  `npx prettier --write docs/<archivo>.md` (el repo está en **CRLF** y no hay
+  `.prettierrc`: verificar con `npx prettier --check --end-of-line crlf
+docs/<archivo>.md` para no reescribir fin de línea en todo el repo).
 - Cuando un documento queda desactualizado respecto del código o de la base,
   se corrige el documento: **la fuente de verdad es el código y las
   migraciones**, nunca la documentación.
@@ -28,6 +30,14 @@
   `dominio.md` / `glosario.md`, y su contexto en `decisiones/`. Las
   decisiones de proceso/técnica viven
   solo en `decisiones/` y se enlazan desde `estado-fases-1-6.md`.
+
+- **Skills de diseño (Vercel labs):** hay skills disponibles para este repo.
+  La principal es **`web-design-guidelines`** (audita contra las _Web Interface
+  Guidelines_: accesibilidad, foco, formularios, tipografía, `Intl`, dark
+  mode) y se invoca **al construir o revisar cualquier pantalla**. Detalle
+  completo en `AGENTS.md` → "UI/UX Review Skills". El resultado del review no
+  reemplaza los tokens semánticos de `src/index.css` ni el patrón
+  `requestKey` + `reloadToken`.
 
 ## Orden sugerido de lectura
 
