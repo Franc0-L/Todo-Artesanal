@@ -81,6 +81,7 @@ Todo-Artesanal/
 │   │   └── rotate-client-token/
 │   ├── migrations/         Migraciones SQL
 │   └── config.toml
+├── .env.example          Plantilla de .env.local (commiteada)
 ├── .env.local              Variables de entorno (no commiteado)
 ├── package.json
 ├── tsconfig.json
@@ -115,17 +116,26 @@ Ver `docs/dominio.md` para el detalle.
 - Node.js 20+
 - npm
 - Supabase CLI (`npx supabase` funciona sin instalación global)
+- Docker Desktop (con backend WSL2) o Docker Engine — solo para el stack local
 
 ### Variables de entorno
 
-Crear `.env.local` en la raíz:
+El repo trae plantillas **commiteadas** (con placeholders o valores públicos)
+para cada archivo secreto; los reales son gitignored y se crean con:
 
-```env
-VITE_SUPABASE_URL=https://<project-ref>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon-key>
+```bash
+npm run env:init      # crea los que falten; nunca pisa los existentes
+npm run env:cloud     # .env.local -> proyecto en la nube (o env:local)
 ```
 
-Los valores se obtienen de Supabase Dashboard → **Project Settings → API**.
+| Plantilla                            | Genera (gitignored)          |
+| ------------------------------------ | ---------------------------- |
+| `.env.example`                       | `.env.local`                 |
+| `supabase/.env.example`              | `supabase/.env.local`        |
+| `supabase/signing_keys.example.json` | `supabase/signing_keys.json` |
+
+Detalle (qué lleva cada uno, dónde salen los valores y checklist de migración a
+otra máquina): `docs/entorno-y-secretos.md`.
 
 ### Instalación
 
@@ -179,13 +189,17 @@ ES256** que emite el cliente. Apunta a `supabase/signing_keys.json`, que
 guarda la JWK en forma de array (`[{...}]`).
 
 **Archivos locales** (gitignored, no viajan en git — hay que crearlos en cada
-clone):
+clone; `npm run env:init` los arma desde las plantillas):
 
-| Archivo                      | Contenido                                                              |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| `supabase/.env.local`        | `CLIENT_JWT_PRIVATE_KEY_JWK` (objeto JWK, no array) + `CLIENT_JWT_KID` |
-| `supabase/signing_keys.json` | `[` + esa misma JWK + `]`                                              |
-| `.env.local`                 | URL y publishable key del frontend (lo escribe `npm run env:*`)        |
+| Archivo                      | Contenido                                                              | Plantilla                            |
+| ---------------------------- | ---------------------------------------------------------------------- | ------------------------------------ |
+| `supabase/.env.local`        | `CLIENT_JWT_PRIVATE_KEY_JWK` (objeto JWK, no array) + `CLIENT_JWT_KID` | `supabase/.env.example`              |
+| `supabase/signing_keys.json` | `[` + esa misma JWK + `]`                                              | `supabase/signing_keys.example.json` |
+| `.env.local`                 | URL y publishable key del frontend (lo escribe `npm run env:*`)        | `.env.example`                       |
+
+Los dos de `supabase/` son **la misma clave en dos formas**; para mudarse de
+compu alcanza con copiar **uno** y correr `npm run env:init` (deriva el otro).
+Ver `docs/entorno-y-secretos.md`.
 
 **Credenciales locales:** el mismo admin que en la nube
 (`francoleonettu123@gmail.com`). El usuario se crea contra el Auth local y
