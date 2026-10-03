@@ -115,7 +115,7 @@
     box-shadow 120ms ease;
 }
 
-.admin-login__field input:focus {
+.admin-login__field input:focus-visible {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-focus);
 }

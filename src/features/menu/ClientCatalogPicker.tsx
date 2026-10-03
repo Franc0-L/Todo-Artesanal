@@ -58,7 +58,11 @@ export function ClientCatalogPicker({
         </button>
       </div>
 
+      <label htmlFor="client-catalog-search" className="sr-only">
+        Buscar plato o menú en el catálogo
+      </label>
       <input
+        id="client-catalog-search"
         type="search"
         className="client-catalog__search"
         value={query}

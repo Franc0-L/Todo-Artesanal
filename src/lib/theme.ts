@@ -34,6 +34,19 @@ function applyTheme(theme: Theme) {
 // Inicializar de inmediato al importar el módulo
 applyTheme(currentTheme);
 
+// Seguir los cambios del sistema mientras no haya una preferencia guardada:
+// así el tema acompaña al SO sin pisar una elección explícita del usuario.
+if (typeof window !== "undefined" && window.matchMedia) {
+  window
+    .matchMedia("(prefers-color-scheme: dark)")
+    .addEventListener("change", (event) => {
+      if (localStorage.getItem(STORAGE_KEY)) return;
+      currentTheme = event.matches ? "dark" : "light";
+      applyTheme(currentTheme);
+      listeners.forEach((listener) => listener());
+    });
+}
+
 export function setTheme(theme: Theme) {
   currentTheme = theme;
   localStorage.setItem(STORAGE_KEY, theme);

@@ -1,10 +1,38 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>todo-artesanal</title>
+    <meta
+      name="theme-color"
+      content="#f8fafc"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#0b0f17"
+      media="(prefers-color-scheme: dark)"
+    />
+    <title>Todo Artesanal</title>
+    <script>
+      // Aplica el tema guardado antes del primer paint para evitar el flash
+      // claro→oscuro. Es intencionalmente mínimo y tolerante a fallos.
+      (function () {
+        try {
+          var saved = localStorage.getItem("todo-artesanal-theme");
+          var theme =
+            saved === "light" || saved === "dark"
+              ? saved
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.dataset.theme = theme;
+        } catch (error) {
+          /* sin localStorage: se queda con el tema por defecto */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

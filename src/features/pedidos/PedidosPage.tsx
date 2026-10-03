@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { setSearchParams, useQueryParam } from "../../app/query";
+import { MODALITY_LABELS } from "../../lib/labels";
 import { OrderDrawer } from "./OrderDrawer";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { getOrderTotals, listAllOrders } from "./services/orders.service";
@@ -19,12 +21,6 @@ import "./pedidos.css";
 import "./pedido-details.css";
 
 type ModalityFilter = "all" | Modality;
-
-const MODALITY_LABELS: Record<Modality, string> = {
-  general: "General",
-  opcional: "Opcional",
-  media_vianda: "Media vianda",
-};
 
 /** Pedidos de un cliente, con sus subtotales, para el listado agrupado. */
 interface ClientOrderGroup {
@@ -95,7 +91,9 @@ function groupOrdersByClient(orders: OrderDetail[]): ClientOrderGroup[] {
 
 export function PedidosPage() {
   const [weeks, setWeeks] = useState<WeekListItem[]>([]);
-  const [weekId, setWeekId] = useState("");
+  // La semana elegida vive en la URL (query `semana`) para poder compartir y
+  // refrescar el listado conservando la selección.
+  const weekId = useQueryParam("semana") ?? "";
   const [activeWeekId, setActiveWeekId] = useState<string | null>(null);
   // Los días se guardan junto a la semana a la que pertenecen, y la selección
   // del día junto a la semana en la que se eligió: así el estado válido se
@@ -164,9 +162,12 @@ export function PedidosPage() {
         if (cancelled) return;
         setWeeks(weeksResult.items);
         setActiveWeekId(active?.id ?? null);
-        setWeekId(
-          (current) => current || active?.id || weeksResult.items[0]?.id || "",
-        );
+        if (!new URLSearchParams(window.location.search).get("semana")) {
+          const fallback = active?.id ?? weeksResult.items[0]?.id ?? "";
+          if (fallback) {
+            setSearchParams({ semana: fallback }, { replace: true });
+          }
+        }
       })
       .catch((weeksError: unknown) => {
         if (!cancelled) {
@@ -258,8 +259,8 @@ export function PedidosPage() {
 
   function handleWeekChange(value: string) {
     setError(null);
-    setWeekId(value);
     setDaySelection({ weekId: value, weekDayId: "" });
+    setSearchParams({ semana: value });
   }
 
   function handleDayChange(value: string) {

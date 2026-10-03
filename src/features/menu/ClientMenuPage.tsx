@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { formatDateRange } from "../../lib/formatters";
 import { ClientDayCard } from "./ClientDayCard";
@@ -6,6 +6,8 @@ import { useClientSession } from "./useClientSession";
 import { useClientWeekData } from "./useClientWeekData";
 import type { ClientMenuData } from "./types/menu-data";
 import type { MenuClient } from "./types/client-session";
+import type { OrderDetail } from "../pedidos/types/order-detail";
+import type { Cancellation } from "../cancelaciones/types/cancellation";
 import "./menu.css";
 
 /** Límite de `setTimeout` (~24,8 días): cortes de semana activa siempre entran. */
@@ -147,6 +149,26 @@ function ActiveWeek({ data, client, clientId, onChanged }: ActiveWeekProps) {
   const allowsHalfPortion = clientRow?.allowsHalfPortion ?? false;
   const closedDayIds = new Set(data.closedDayIds);
 
+  // Pre-indexa pedidos y cancelaciones por día (una sola pasada) en vez de
+  // filtrar/buscar por cada día al renderizar.
+  const ordersByDay = useMemo(() => {
+    const map = new Map<string, OrderDetail[]>();
+    for (const order of orders) {
+      const list = map.get(order.weekDayId);
+      if (list) list.push(order);
+      else map.set(order.weekDayId, [order]);
+    }
+    return map;
+  }, [orders]);
+
+  const cancellationByDay = useMemo(() => {
+    const map = new Map<string, Cancellation>();
+    for (const cancellation of cancellations) {
+      map.set(cancellation.weekDayId, cancellation);
+    }
+    return map;
+  }, [cancellations]);
+
   return (
     <article className="client-menu__week" aria-labelledby="client-week-title">
       <div className="client-menu__week-heading">
@@ -165,11 +187,8 @@ function ActiveWeek({ data, client, clientId, onChanged }: ActiveWeekProps) {
           <ClientDayCard
             key={day.weekDay.id}
             day={day}
-            orders={orders.filter((order) => order.weekDayId === day.weekDay.id)}
-            cancellation={
-              cancellations.find((item) => item.weekDayId === day.weekDay.id) ??
-              null
-            }
+            orders={ordersByDay.get(day.weekDay.id) ?? []}
+            cancellation={cancellationByDay.get(day.weekDay.id) ?? null}
             prices={prices}
             allowsHalfPortion={allowsHalfPortion}
             clientId={clientId}

@@ -10,7 +10,10 @@ import {
   listHistoricalWeeks,
 } from "./services/history.service";
 import { getHistoricalWeekDetail } from "./services/historical-week-detail.service";
+import { formatCurrency, formatShortDate } from "../../lib/formatters";
+import { MODALITY_LABELS } from "../../lib/labels";
 import { EmptyState } from "../../components/ui/EmptyState";
+import type { Modality } from "../../types/domain";
 import type { HistoricalWeek } from "./types/historical-week";
 import type { UnansweredClient } from "./types/unanswered";
 import type { HistoricalWeekDetail } from "./services/historical-week-detail.service";
@@ -19,29 +22,8 @@ import "./history.css";
 const PAGE_SIZE = 10;
 const UNANSWERED_PAGE_SIZE = 50;
 
-function formatDate(value: string): string {
-  const [year, month, day] = value.split("-").map(Number);
-  if (!year || !month || !day) return value;
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(year, month - 1, day));
-}
-
-function formatAmount(value: number): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 2,
-  }).format(value);
-}
-
 function formatModality(value: string): string {
-  if (value === "general") return "General";
-  if (value === "opcional") return "Opcional";
-  if (value === "media_vianda") return "Media vianda";
-  return value;
+  return MODALITY_LABELS[value as Modality] ?? value;
 }
 
 function formatOptionType(value: string): string {
@@ -258,18 +240,18 @@ export function HistoryPage() {
                     type="button"
                     className="history-week-row"
                     onClick={() => void openWeekDetail(week)}
-                    aria-label={`Abrir detalle de la semana ${formatDate(week.startDate)} a ${formatDate(week.endDate)}`}
+                    aria-label={`Abrir detalle de la semana ${formatShortDate(week.startDate)} a ${formatShortDate(week.endDate)}`}
                   >
                     <div>
                       <strong>
-                        {formatDate(week.startDate)} —{" "}
-                        {formatDate(week.endDate)}
+                        {formatShortDate(week.startDate)} —{" "}
+                        {formatShortDate(week.endDate)}
                       </strong>
                       <span>{week.expectedClientCount} clientes esperados</span>
                     </div>
                     <span>{week.orderCount}</span>
                     <span>{week.totalQuantity}</span>
-                    <strong>{formatAmount(week.totalAmount)}</strong>
+                    <strong>{formatCurrency(week.totalAmount)}</strong>
                     <span>{week.cancellationCount}</span>
                     <span
                       className={
@@ -328,8 +310,8 @@ export function HistoryPage() {
               <div>
                 <p>Semana cerrada</p>
                 <h2 id="history-drawer-title">
-                  {formatDate(selectedWeek.startDate)} —{" "}
-                  {formatDate(selectedWeek.endDate)}
+                  {formatShortDate(selectedWeek.startDate)} —{" "}
+                  {formatShortDate(selectedWeek.endDate)}
                 </h2>
               </div>
               <button type="button" onClick={closeDrawer} aria-label="Cerrar">
@@ -348,7 +330,7 @@ export function HistoryPage() {
               </div>
               <div>
                 <dt>Total</dt>
-                <dd>{formatAmount(selectedWeek.totalAmount)}</dd>
+                <dd>{formatCurrency(selectedWeek.totalAmount)}</dd>
               </div>
               <div>
                 <dt>Cancelaciones</dt>
@@ -382,7 +364,7 @@ export function HistoryPage() {
                             </strong>
                             <span>
                               {order.weekDay
-                                ? formatDate(order.weekDay.date)
+                                ? formatShortDate(order.weekDay.date)
                                 : "Día no disponible"}
                               {" · "}
                               {order.option?.name ?? "Opción no disponible"}
@@ -395,7 +377,7 @@ export function HistoryPage() {
                             </span>
                             <strong>
                               {order.quantity} ×{" "}
-                              {formatAmount(order.appliedPrice)}
+                              {formatCurrency(order.appliedPrice)}
                             </strong>
                             {order.notes && <small>{order.notes}</small>}
                           </div>
@@ -425,7 +407,7 @@ export function HistoryPage() {
                             </strong>
                             <span>
                               {cancellation.weekDay
-                                ? formatDate(cancellation.weekDay.date)
+                                ? formatShortDate(cancellation.weekDay.date)
                                 : "Día no disponible"}
                             </span>
                           </div>

@@ -5,6 +5,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { setSearchParams, useQueryParam } from "../../app/query";
 import { ClientDrawer } from "./ClientDrawer";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { listClients } from "./services/clients.service";
@@ -18,10 +19,17 @@ const SEARCH_DEBOUNCE_MS = 350;
 type StatusFilter = "all" | "active" | "inactive";
 
 export function ClientsPage() {
-  const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  // Página, búsqueda y filtro viven en la URL (query params) para poder
+  // compartir/refrescar el listado y navegar con el botón atrás.
+  const pageParam = useQueryParam("page");
+  const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
+  const statusParam = useQueryParam("estado");
+  const statusFilter: StatusFilter =
+    statusParam === "active" || statusParam === "inactive"
+      ? statusParam
+      : "all";
+  const search = useQueryParam("q") ?? "";
+  const [searchInput, setSearchInput] = useState(search);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
@@ -45,6 +53,9 @@ export function ClientsPage() {
   const error = failure?.key === requestKey ? failure.message : null;
 
   const searchDebounceRef = useRef<number | null>(null);
+  // Evita reescribir la URL en el primer render (así un enlace compartido con
+  // página/búsqueda no se resetea al abrir).
+  const skipFirstSearchDebounceRef = useRef(true);
 
   // `reload` vuelve a consultar con los mismos filtros: se usa cuando hay que
   // refrescar el listado sin cambiar la clave por otro motivo.
@@ -103,7 +114,7 @@ export function ClientsPage() {
     (created: Client) => {
       setCreateDrawerOpen(false);
       setSelectedClientId(created.id);
-      setPage(1);
+      setSearchParams({ page: null }, { replace: true });
       // Si ya estábamos en la página 1 con los mismos filtros, cambiar
       // `page` a 1 no dispara una consulta nueva por sí solo. `reload`
       // fuerza el refresco para que el cliente recién creado aparezca sin
@@ -139,7 +150,7 @@ export function ClientsPage() {
     setCreateDrawerOpen(false);
 
     if (items.length <= 1 && page > 1) {
-      setPage(page - 1);
+      goToPage(page - 1);
       return;
     }
 
@@ -152,13 +163,20 @@ export function ClientsPage() {
   // mantener el número de página de un filtro anterior sobre un conjunto
   // de resultados distinto.
   useEffect(() => {
+    if (skipFirstSearchDebounceRef.current) {
+      skipFirstSearchDebounceRef.current = false;
+      return;
+    }
+
     if (searchDebounceRef.current !== null) {
       window.clearTimeout(searchDebounceRef.current);
     }
 
     searchDebounceRef.current = window.setTimeout(() => {
-      setPage(1);
-      setSearch(searchInput.trim());
+      setSearchParams(
+        { q: searchInput.trim() || null, page: null },
+        { replace: true },
+      );
     }, SEARCH_DEBOUNCE_MS);
 
     return () => {
@@ -176,13 +194,18 @@ export function ClientsPage() {
       searchDebounceRef.current = null;
     }
 
-    setPage(1);
-    setSearch(searchInput.trim());
+    setSearchParams({ q: searchInput.trim() || null, page: null });
+  }
+
+  function goToPage(next: number) {
+    setSearchParams({ page: next <= 1 ? null : String(next) });
   }
 
   function handleStatusChange(value: StatusFilter) {
-    setPage(1);
-    setStatusFilter(value);
+    setSearchParams({
+      estado: value === "all" ? null : value,
+      page: null,
+    });
   }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -312,14 +335,14 @@ export function ClientsPage() {
             <button
               type="button"
               disabled={page === 1}
-              onClick={() => setPage((current) => current - 1)}
+              onClick={() => goToPage(page - 1)}
             >
               Anterior
             </button>
             <button
               type="button"
               disabled={page >= totalPages}
-              onClick={() => setPage((current) => current + 1)}
+              onClick={() => goToPage(page + 1)}
             >
               Siguiente
             </button>

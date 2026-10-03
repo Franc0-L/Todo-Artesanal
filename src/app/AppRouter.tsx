@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { AdminSectionPage } from "../features/admin/AdminSectionPage";
 import { AdminLoginPage } from "../features/auth/AdminLoginPage";
@@ -16,6 +16,7 @@ import { CancelacionesPage } from "../features/cancelaciones/CancelacionesPage";
 import { ClientMenuPage } from "../features/menu/ClientMenuPage";
 import { ClientSessionProvider } from "../features/menu/ClientSessionProvider";
 import { resolveRoute } from "./routes";
+import { titleForRoute } from "./titles";
 
 function subscribeToLocation(onChange: () => void) {
   window.addEventListener("popstate", onChange);
@@ -90,6 +91,13 @@ export function AppRouter() {
     getServerLocation,
   );
   const route = resolveRoute(pathname);
+
+  // El título de la pestaña sigue a la ruta. Depende de `pathname` (primitivo)
+  // para no re-ejecutarse con cada render por la identidad nueva de `route`.
+  useEffect(() => {
+    document.title = titleForRoute(resolveRoute(pathname));
+  }, [pathname]);
+
   switch (route.kind) {
     case "admin":
       return <AdminRoute path={route.path} />;
@@ -100,8 +108,16 @@ export function AppRouter() {
         </ClientSessionProvider>
       );
     case "home":
-      return <div>Todo Artesanal</div>;
+      return (
+        <main className="app-landing">
+          <h1>Todo Artesanal</h1>
+        </main>
+      );
     case "not-found":
-      return <div>Página no encontrada</div>;
+      return (
+        <main className="app-landing">
+          <h1>Página no encontrada</h1>
+        </main>
+      );
   }
 }

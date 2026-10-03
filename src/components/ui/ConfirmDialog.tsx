@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useDialogA11y } from "./useDialogA11y";
 import "./ConfirmDialog.css";
 
 export interface ConfirmDialogProps {
@@ -34,13 +35,19 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Atrapa el foco dentro del diálogo y deja la página detrás `inert`; el
+  // enfoque inicial va al botón de confirmación.
+  useDialogA11y(dialogRef, {
+    active: open,
+    initialFocusRef: confirmButtonRef,
+  });
 
   useEffect(() => {
     if (!open) {
       return;
     }
-
-    confirmButtonRef.current?.focus();
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -60,6 +67,7 @@ export function ConfirmDialog({
   return (
     <div className="confirm-dialog__backdrop" onMouseDown={onCancel}>
       <div
+        ref={dialogRef}
         className="confirm-dialog"
         role="alertdialog"
         aria-modal="true"

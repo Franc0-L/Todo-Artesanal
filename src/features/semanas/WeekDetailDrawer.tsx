@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useDialogA11y } from "../../components/ui/useDialogA11y";
+import { OFFER_MODALITY_LABELS } from "../../lib/labels";
 import { getWeek } from "./services/weeks.service";
 import { getWeekOffer } from "./services/week-offer.service";
 import { getExpectedClientCount } from "./services/week-expected-clients.service";
@@ -27,11 +29,6 @@ const WEEK_STATUS_LABELS: Record<WeekStatus, string> = {
   closed: "Cerrada",
 };
 
-const MODALITY_LABELS: Record<"general" | "opcional", string> = {
-  general: "General",
-  opcional: "Opcional",
-};
-
 /**
  * Ficha liviana de una semana (solo lectura) para ver estado, fechas,
  * clientes esperados y el resumen de la oferta por día.
@@ -45,6 +42,11 @@ export function WeekDetailDrawer({
   onOpenWorkspace,
 }: WeekDetailDrawerProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(dialogRef, {
+    active: weekId !== null,
+    initialFocusRef: closeButtonRef,
+  });
   const [week, setWeek] = useState<Week | null>(null);
   const [offer, setOffer] = useState<WeekOffer | null>(null);
   const [expectedCount, setExpectedCount] = useState<number | null>(null);
@@ -127,6 +129,7 @@ export function WeekDetailDrawer({
   return (
     <div className="dish-drawer__backdrop" onMouseDown={onClose}>
       <aside
+        ref={dialogRef}
         className="dish-drawer week-detail-drawer"
         role="dialog"
         aria-modal="true"
@@ -241,7 +244,7 @@ export function WeekDetailDrawer({
                                 <span
                                   className={`week-detail-day__modality week-detail-day__modality--${option.offerModality}`}
                                 >
-                                  {MODALITY_LABELS[option.offerModality]}
+                                  {OFFER_MODALITY_LABELS[option.offerModality]}
                                 </span>
                                 <span className="week-detail-day__name">
                                   {option.optionType === "dish"

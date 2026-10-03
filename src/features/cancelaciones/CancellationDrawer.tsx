@@ -5,6 +5,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { useDialogA11y } from "../../components/ui/useDialogA11y";
 import { createCancellation } from "./services/cancellations.service";
 import { getActiveWeek } from "../semanas/services/weeks.service";
 import { listWeekDays } from "../semanas/services/week-days.service";
@@ -39,6 +40,8 @@ export function CancellationDrawer({
   onCreated,
 }: CancellationDrawerProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(dialogRef, { active: open, initialFocusRef: closeButtonRef });
   const [activeWeek, setActiveWeek] = useState<Week | null>(null);
   const [days, setDays] = useState<WeekDay[]>([]);
   const [expectedClients, setExpectedClients] = useState<WeekExpectedClient[]>(
@@ -206,6 +209,7 @@ export function CancellationDrawer({
         onMouseDown={() => void requestClose()}
       >
         <aside
+          ref={dialogRef}
           className="dish-drawer"
           role="dialog"
           aria-modal="true"

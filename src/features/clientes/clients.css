@@ -242,6 +242,7 @@
   justify-content: flex-end;
   background: var(--backdrop-color);
   backdrop-filter: blur(2px);
+  overscroll-behavior: contain;
 }
 .client-drawer {
   width: min(480px, 100%);
@@ -251,6 +252,7 @@
   color: var(--text-body);
   border-left: 1px solid var(--border-subtle);
   box-shadow: var(--drawer-shadow);
+  overscroll-behavior: contain;
 }
 .client-drawer__header {
   display: flex;

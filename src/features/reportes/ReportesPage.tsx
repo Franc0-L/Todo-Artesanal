@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { setSearchParams, useQueryParam } from "../../app/query";
+import { MODALITY_LABELS } from "../../lib/labels";
 import { EmptyState } from "../../components/ui/EmptyState";
 import {
   formatCurrency,
@@ -8,16 +10,10 @@ import {
 import { DAY_LABELS } from "../semanas/day-labels";
 import { getActiveWeek, listWeeks } from "../semanas/services/weeks.service";
 import { getWeekReport } from "./services/reports.service";
-import type { DayOfWeek, Modality, WeekStatus } from "../../types/domain";
+import type { DayOfWeek, WeekStatus } from "../../types/domain";
 import type { WeekListItem } from "../semanas/types/week-list";
 import type { WeekReport, WeekReportProductRow } from "./types/week-report";
 import "./reportes.css";
-
-const MODALITY_LABELS: Record<Modality, string> = {
-  general: "General",
-  opcional: "Opcional",
-  media_vianda: "Media vianda",
-};
 
 function weekStatusLabel(status: WeekStatus): string {
   if (status === "active") return "activa";
@@ -44,7 +40,8 @@ function productOriginLabel(row: WeekReportProductRow): string {
 
 export function ReportesPage() {
   const [weeks, setWeeks] = useState<WeekListItem[]>([]);
-  const [weekId, setWeekId] = useState("");
+  // La semana elegida vive en la URL (query `semana`).
+  const weekId = useQueryParam("semana") ?? "";
   const [weeksLoading, setWeeksLoading] = useState(true);
   const [weeksError, setWeeksError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -80,9 +77,12 @@ export function ReportesPage() {
       .then(([weeksResult, active]) => {
         if (cancelled) return;
         setWeeks(weeksResult.items);
-        setWeekId(
-          (current) => current || active?.id || weeksResult.items[0]?.id || "",
-        );
+        if (!new URLSearchParams(window.location.search).get("semana")) {
+          const fallback = active?.id ?? weeksResult.items[0]?.id ?? "";
+          if (fallback) {
+            setSearchParams({ semana: fallback }, { replace: true });
+          }
+        }
         setWeeksError(null);
       })
       .catch((weeksFailure: unknown) => {
@@ -149,7 +149,7 @@ export function ReportesPage() {
             value={weekId}
             onChange={(event) => {
               setWeeksError(null);
-              setWeekId(event.target.value);
+              setSearchParams({ semana: event.target.value });
             }}
             disabled={weeksLoading || weeks.length === 0}
           >

@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { useAuth } from "../auth/useAuth";
 import { AdminNavigation } from "./AdminNavigation";
-import { navigate, type AdminRoutePath } from "../../app/routes";
+import { RouteLink } from "../../app/RouteLink";
+import type { AdminRoutePath } from "../../app/routes";
 import { useTheme } from "../../lib/theme";
 import "./admin-shell.css";
 
@@ -29,10 +30,9 @@ export function AdminShell({
     <div className="admin-shell">
       <header className="admin-shell__header">
         <div className="admin-shell__header-inner">
-          <button
-            type="button"
+          <RouteLink
             className="admin-shell__brand"
-            onClick={() => navigate("/admin")}
+            to="/admin"
             aria-label="Ir al panel de inicio"
           >
             <img
@@ -48,7 +48,7 @@ export function AdminShell({
               </strong>
               <span className="admin-shell__brand-badge">Admin</span>
             </div>
-          </button>
+          </RouteLink>
 
           <div className="admin-shell__user">
             <button

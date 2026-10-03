@@ -5,6 +5,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { useDialogA11y } from "../../components/ui/useDialogA11y";
 import {
   createClient,
   deleteClient,
@@ -85,6 +86,11 @@ export function ClientDrawer({
   // representa ese "cargando" y el efecto no necesita sincronizar estado.
   const isEditMode = !isCreateMode && clientId !== null;
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(dialogRef, {
+    active: isCreateMode || clientId !== null,
+    initialFocusRef: closeButtonRef,
+  });
   const [client, setClient] = useState<Client | null>(null);
   const [form, setForm] = useState<ClientFormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(isEditMode);
@@ -359,6 +365,7 @@ export function ClientDrawer({
         onMouseDown={() => void requestClose()}
       >
         <aside
+          ref={dialogRef}
           className="client-drawer"
           role="dialog"
           aria-modal="true"

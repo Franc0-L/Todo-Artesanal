@@ -1,4 +1,5 @@
-import { navigate, type AdminRoutePath } from "../../app/routes";
+import { RouteLink } from "../../app/RouteLink";
+import type { AdminRoutePath } from "../../app/routes";
 import type { MascotAsset } from "../../components/ui/EmptyState";
 
 interface AdminNavItem {
@@ -34,11 +35,10 @@ export function AdminNavigation({
 
             return (
               <li key={item.path} className="admin-nav__item">
-                <button
-                  type="button"
+                <RouteLink
                   className="admin-nav__button"
+                  to={item.path}
                   aria-current={isCurrent ? "page" : undefined}
-                  onClick={() => navigate(item.path)}
                 >
                   <img
                     className="admin-nav__icon"
@@ -50,7 +50,7 @@ export function AdminNavigation({
                     decoding="async"
                   />
                   {item.label}
-                </button>
+                </RouteLink>
               </li>
             );
           })}

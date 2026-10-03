@@ -15,7 +15,7 @@ import { ClientCatalogPicker } from "./ClientCatalogPicker";
 import { ClientOrderLine } from "./ClientOrderLine";
 import { getEffectivePrice } from "./services/menu-pricing.service";
 import { actionErrorMessage } from "./menu-errors";
-import { MODALITY_LABELS } from "./menu-labels";
+import { MODALITY_LABELS } from "../../lib/labels";
 import { priceKey } from "./types/menu-data";
 import type { CatalogItem } from "./services/menu-catalog.service";
 import type { Modality } from "../../types/domain";

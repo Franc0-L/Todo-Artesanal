@@ -5,6 +5,8 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { useDialogA11y } from "../../components/ui/useDialogA11y";
+import { MODALITY_LABELS } from "../../lib/labels";
 import {
   createOrder,
   deleteOrder,
@@ -43,12 +45,6 @@ interface OrderDrawerProps {
   onDeleted: (orderId: string) => void;
 }
 
-const MODALITY_LABELS: Record<Modality, string> = {
-  general: "General",
-  opcional: "Opcional",
-  media_vianda: "Media vianda",
-};
-
 /** Búsqueda del catálogo para la media vianda libre. */
 const CATALOG_SEARCH_DEBOUNCE_MS = 350;
 const CATALOG_SEARCH_PAGE_SIZE = 6;
@@ -74,6 +70,8 @@ export function OrderDrawer({
   const isCreateMode = mode === "create";
   // El drawer está abierto cuando se crea un pedido o hay uno seleccionado.
   const open = isCreateMode || orderId !== null;
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(dialogRef, { active: open, initialFocusRef: closeButtonRef });
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [quantity, setQuantity] = useState("1");
   const [notes, setNotes] = useState("");
@@ -550,6 +548,7 @@ export function OrderDrawer({
         onMouseDown={() => void requestClose()}
       >
         <aside
+          ref={dialogRef}
           className="dish-drawer"
           role="dialog"
           aria-modal="true"

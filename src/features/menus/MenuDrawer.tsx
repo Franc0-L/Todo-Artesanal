@@ -5,6 +5,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { useDialogA11y } from "../../components/ui/useDialogA11y";
 import { createMenu, getMenu, setMenuActive } from "./services/menus.service";
 import {
   createMenuVersion,
@@ -76,6 +77,11 @@ export function MenuDrawer({
   // representa ese "cargando" y el efecto no necesita sincronizar estado.
   const isEditMode = !isCreateMode && menuId !== null;
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(dialogRef, {
+    active: isCreateMode || menuId !== null,
+    initialFocusRef: closeButtonRef,
+  });
   const [menu, setMenu] = useState<MenuWithCurrentVersion | null>(null);
   const [versions, setVersions] = useState<MenuVersionSummary[]>([]);
 
@@ -850,6 +856,7 @@ export function MenuDrawer({
         onMouseDown={() => void requestClose()}
       >
         <aside
+          ref={dialogRef}
           className="dish-drawer"
           role="dialog"
           aria-modal="true"

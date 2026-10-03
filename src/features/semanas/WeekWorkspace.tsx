@@ -5,6 +5,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { OFFER_MODALITY_LABELS } from "../../lib/labels";
 import {
   activateWeek,
   closeWeek,
@@ -80,11 +81,6 @@ const WEEK_STATUS_LABELS: Record<WeekStatus, string> = {
   draft: "Borrador",
   active: "Activa",
   closed: "Cerrada",
-};
-
-const OFFER_MODALITY_LABELS: Record<OfferModality, string> = {
-  general: "General",
-  opcional: "Opcional",
 };
 
 /** Feedback de la última corrida del sugeridor, por día o de la semana. */

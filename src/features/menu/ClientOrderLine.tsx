@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatCurrency } from "../../lib/formatters";
-import { MODALITY_LABELS } from "./menu-labels";
+import { MODALITY_LABELS } from "../../lib/labels";
 import type { OrderDetail } from "../pedidos/types/order-detail";
 
 interface ClientOrderLineProps {

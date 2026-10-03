@@ -7,6 +7,12 @@ const currencyFormatter = new Intl.NumberFormat("es-AR", {
 
 const dateFormatter = new Intl.DateTimeFormat("es-AR");
 
+const shortDateFormatter = new Intl.DateTimeFormat("es-AR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
 const dateTimeFormatter = new Intl.DateTimeFormat("es-AR", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -20,6 +26,14 @@ export function formatDate(value: string): string {
   const date = parseDateValue(value);
 
   return dateFormatter.format(date);
+}
+
+/**
+ * Fecha corta `dd/mm/aaaa`, para listados históricos. Acepta `YYYY-MM-DD`
+ * (fecha sin zona) o un ISO completo con hora.
+ */
+export function formatShortDate(value: string): string {
+  return shortDateFormatter.format(parseDateValue(value));
 }
 
 /**
@@ -51,7 +65,7 @@ export function formatDateRange(startDate: string, endDate: string): string {
     return formatDate(startDate);
   }
 
-  return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  return `${formatDate(startDate)} – ${formatDate(endDate)}`;
 }
 
 function parseDateValue(value: string): Date {

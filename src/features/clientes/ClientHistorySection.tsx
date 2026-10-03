@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { getClientHistory } from "../historial/services/history.service";
+import { formatCurrency, formatShortDate } from "../../lib/formatters";
+import { MODALITY_LABELS } from "../../lib/labels";
 import type { ClientHistoryEntry } from "../historial/types/client-history";
-import type { Modality, WeekStatus } from "../../types/domain";
+import type { WeekStatus } from "../../types/domain";
 
 interface ClientHistorySectionProps {
   clientId: string;
@@ -9,39 +11,11 @@ interface ClientHistorySectionProps {
 
 const PAGE_SIZE = 5;
 
-const MODALITY_LABELS: Record<Modality, string> = {
-  general: "General",
-  opcional: "Opcional",
-  media_vianda: "Media vianda",
-};
-
 const WEEK_STATUS_LABELS: Record<WeekStatus, string> = {
   draft: "Borrador",
   active: "Activa",
   closed: "Cerrada",
 };
-
-function formatDate(value: string): string {
-  const [year, month, day] = value.split("-").map(Number);
-
-  if (!year || !month || !day) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(year, month - 1, day));
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 2,
-  }).format(value);
-}
 
 function dayLabel(dayOfWeek: number): string {
   const labels = ["", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
@@ -58,8 +32,8 @@ function HistoryWeek({ entry }: { entry: ClientHistoryEntry }) {
       <header className="client-history__week-header">
         <div>
           <h4>
-            {formatDate(entry.week.startDate)} —{" "}
-            {formatDate(entry.week.endDate)}
+            {formatShortDate(entry.week.startDate)} —{" "}
+            {formatShortDate(entry.week.endDate)}
           </h4>
           <span className="client-history__status">
             {WEEK_STATUS_LABELS[entry.week.status]}
@@ -105,7 +79,7 @@ function HistoryWeek({ entry }: { entry: ClientHistoryEntry }) {
                 </strong>
                 <span>
                   {cancellation.weekDay
-                    ? formatDate(cancellation.weekDay.date)
+                    ? formatShortDate(cancellation.weekDay.date)
                     : "Fecha no disponible"}
                 </span>
               </li>

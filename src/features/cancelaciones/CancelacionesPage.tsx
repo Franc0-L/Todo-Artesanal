@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { setSearchParams, useQueryParam } from "../../app/query";
 import { CancellationDrawer } from "./CancellationDrawer";
 import { deleteCancellation, listCancellations } from "./services/cancellations.service";
 import { listWeeks } from "../semanas/services/weeks.service";
@@ -20,7 +21,8 @@ function weekStatusLabel(status: WeekListItem["status"]): string {
 
 export function CancelacionesPage() {
   const [weeks, setWeeks] = useState<WeekListItem[]>([]);
-  const [weekId, setWeekId] = useState("");
+  // La semana elegida vive en la URL (query `semana`).
+  const weekId = useQueryParam("semana") ?? "";
   // Los días se guardan junto a la semana a la que pertenecen, y la selección
   // del día junto a la semana en la que se eligió: así el estado válido se
   // deriva al renderizar al cambiar de semana, sin limpiarlo dentro de un efecto.
@@ -73,7 +75,12 @@ export function CancelacionesPage() {
       .then((result) => {
         if (cancelled) return;
         setWeeks(result.items);
-        setWeekId((current) => current || result.items[0]?.id || "");
+        if (!new URLSearchParams(window.location.search).get("semana")) {
+          const fallback = result.items[0]?.id ?? "";
+          if (fallback) {
+            setSearchParams({ semana: fallback }, { replace: true });
+          }
+        }
       })
       .catch((weeksError: unknown) => {
         if (!cancelled) setError(weeksError instanceof Error ? weeksError.message : "No se pudieron cargar las semanas.");
@@ -117,7 +124,7 @@ export function CancelacionesPage() {
     return () => { cancelled = true; };
   }, [page, requestKey, weekDayId, weekId]);
 
-  function handleWeekChange(value: string) { setPage(1); setError(null); setWeekId(value); setDaySelection({ weekId: value, weekDayId: "" }); }
+  function handleWeekChange(value: string) { setPage(1); setError(null); setDaySelection({ weekId: value, weekDayId: "" }); setSearchParams({ semana: value }); }
   function handleDayChange(value: string) { setPage(1); setError(null); setDaySelection({ weekId, weekDayId: value }); }
   function handleCreated() { setCreateOpen(false); setPage(1); reload(); }
 

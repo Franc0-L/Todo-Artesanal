@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { setSearchParams, useQueryParam } from "../../app/query";
 import { WeekWorkspace } from "./WeekWorkspace";
 import { WeekDetailDrawer } from "./WeekDetailDrawer";
 import { useConfirm } from "../../components/ui/useConfirm";
@@ -23,8 +24,16 @@ const WEEK_STATUS_LABELS: Record<WeekStatus, string> = {
 };
 
 export function SemanasPage() {
-  const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  // Página y filtro de estado viven en la URL (query params).
+  const pageParam = useQueryParam("page");
+  const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
+  const statusParam = useQueryParam("estado");
+  const statusFilter: StatusFilter =
+    statusParam === "draft" ||
+    statusParam === "active" ||
+    statusParam === "closed"
+      ? statusParam
+      : "all";
   // Taller inline (pestaña en la página) y ficha liviana (drawer de solo
   // lectura): mutuamente excluyentes para no tener dos superficies abiertas.
   const [workspace, setWorkspace] = useState<WorkspaceState | null>(null);
@@ -153,7 +162,7 @@ export function SemanasPage() {
       // El `key` pasa de "create" a `edit:${id}`, así que el taller se
       // remonta y arranca cargando la semana recién creada.
       setWorkspace({ mode: "edit", weekId: created.id });
-      setPage(1);
+      setSearchParams({ page: null }, { replace: true });
       // `reload` fuerza la consulta aunque ya estuviéramos en la página 1 con
       // los mismos filtros (cambiar `page` a 1 no alcanzaría).
       reload();
@@ -192,16 +201,19 @@ export function SemanasPage() {
     setDetailWeekId(null);
 
     if (items.length <= 1 && page > 1) {
-      setPage(page - 1);
+      goToPage(page - 1);
       return;
     }
 
     reload();
   }, [items.length, page, reload]);
 
+  function goToPage(next: number) {
+    setSearchParams({ page: next <= 1 ? null : String(next) });
+  }
+
   function handleStatusChange(value: StatusFilter) {
-    setPage(1);
-    setStatusFilter(value);
+    setSearchParams({ estado: value === "all" ? null : value, page: null });
   }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -332,14 +344,14 @@ export function SemanasPage() {
             <button
               type="button"
               disabled={page === 1}
-              onClick={() => setPage((current) => current - 1)}
+              onClick={() => goToPage(page - 1)}
             >
               Anterior
             </button>
             <button
               type="button"
               disabled={page >= totalPages}
-              onClick={() => setPage((current) => current + 1)}
+              onClick={() => goToPage(page + 1)}
             >
               Siguiente
             </button>

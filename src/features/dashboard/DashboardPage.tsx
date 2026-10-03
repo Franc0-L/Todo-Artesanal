@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getDashboardSummary } from "./services/dashboard.service";
 import { formatCurrency, formatDateRange } from "../../lib/formatters";
-import { navigate } from "../../app/routes";
+import { RouteLink } from "../../app/RouteLink";
 import type { DashboardSummary } from "./types/dashboard";
 import "./dashboard.css";
 
@@ -58,20 +58,18 @@ export function DashboardPage() {
             </p>
           </div>
           <div className="dashboard-page__actions">
-            <button
+            <RouteLink
               className="dashboard-secondary-action"
-              type="button"
-              onClick={() => navigate("/admin/semanas")}
+              to="/admin/semanas"
             >
               Gestionar semanas
-            </button>
-            <button
+            </RouteLink>
+            <RouteLink
               className="dashboard-primary-action"
-              type="button"
-              onClick={() => navigate("/admin/pedidos")}
+              to="/admin/pedidos"
             >
               Ver pedidos
-            </button>
+            </RouteLink>
           </div>
         </div>
       </header>
@@ -126,20 +124,18 @@ export function DashboardPage() {
                   </span>
                 </div>
                 <div className="dashboard-hero__actions">
-                  <button
+                  <RouteLink
                     className="dashboard-primary-action"
-                    type="button"
-                    onClick={() => navigate("/admin/pedidos")}
+                    to="/admin/pedidos"
                   >
                     Gestionar pedidos
-                  </button>
-                  <button
+                  </RouteLink>
+                  <RouteLink
                     className="dashboard-secondary-action"
-                    type="button"
-                    onClick={() => navigate("/admin/semanas")}
+                    to="/admin/semanas"
                   >
                     Ver oferta
-                  </button>
+                  </RouteLink>
                 </div>
               </div>
 
@@ -233,15 +229,14 @@ export function DashboardPage() {
                       ? "Existe al menos una semana en borrador esperando ser configurada o activada para abrir la toma de pedidos."
                       : "No hay períodos activos ni borradores pendientes. Creá una nueva semana para configurar la oferta semanal."}
                   </p>
-                  <button
+                  <RouteLink
                     className="dashboard-primary-action"
-                    type="button"
-                    onClick={() => navigate("/admin/semanas")}
+                    to="/admin/semanas"
                   >
                     {data.hasDraftWeek
                       ? "Revisar borradores"
                       : "Crear nueva semana"}
-                  </button>
+                  </RouteLink>
                 </div>
               </div>
             </article>
@@ -297,10 +292,9 @@ export function DashboardPage() {
           >
             <h2 id="shortcuts-heading">Accesos Rápidos</h2>
             <div className="dashboard-shortcuts-grid">
-              <button
+              <RouteLink
                 className="dashboard-shortcut-card"
-                type="button"
-                onClick={() => navigate("/admin/clientes")}
+                to="/admin/clientes"
               >
                 <strong className="dashboard-shortcut-card__title">
                   Clientes
@@ -312,12 +306,11 @@ export function DashboardPage() {
                 <span className="dashboard-shortcut-card__link">
                   Ir a Clientes →
                 </span>
-              </button>
+              </RouteLink>
 
-              <button
+              <RouteLink
                 className="dashboard-shortcut-card"
-                type="button"
-                onClick={() => navigate("/admin/platos")}
+                to="/admin/platos"
               >
                 <strong className="dashboard-shortcut-card__title">
                   Platos
@@ -329,12 +322,11 @@ export function DashboardPage() {
                 <span className="dashboard-shortcut-card__link">
                   Ir a Platos →
                 </span>
-              </button>
+              </RouteLink>
 
-              <button
+              <RouteLink
                 className="dashboard-shortcut-card"
-                type="button"
-                onClick={() => navigate("/admin/menus")}
+                to="/admin/menus"
               >
                 <strong className="dashboard-shortcut-card__title">
                   Menús
@@ -346,12 +338,11 @@ export function DashboardPage() {
                 <span className="dashboard-shortcut-card__link">
                   Ir a Menús →
                 </span>
-              </button>
+              </RouteLink>
 
-              <button
+              <RouteLink
                 className="dashboard-shortcut-card"
-                type="button"
-                onClick={() => navigate("/admin/historial")}
+                to="/admin/historial"
               >
                 <strong className="dashboard-shortcut-card__title">
                   Historial
@@ -363,7 +354,7 @@ export function DashboardPage() {
                 <span className="dashboard-shortcut-card__link">
                   Ir a Historial →
                 </span>
-              </button>
+              </RouteLink>
             </div>
           </section>
         </div>
