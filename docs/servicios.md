@@ -295,6 +295,19 @@ No usa `setSession`: el JWT ES256 no tiene usuario GoTrue ni refresh token. El c
 | ------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `listClientCatalog` | `(client?) → Promise<CatalogItem[]>` | Catálogo activo para la media vianda libre. RPC `list_client_catalog` (`security definer`): el RLS de cliente no expone `dishes` / `menus`, así que esa es la única vía. `CatalogItem = { type: 'dish' \| 'menu', productId, versionId, name }`. **No** trae precios. |
 
+## reportes
+
+### `reports.service.ts`
+
+| Función         | Firma                                    | Descripción                                                                                                                                                                                                                                                               |
+| --------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getWeekReport` | `(weekId: string) → Promise<WeekReport>` | Montos consolidados de una semana vía el RPC `get_week_report` (agrega en PostgreSQL, no en el cliente). Valida el UUID y normaliza el `jsonb` snake_case → camelCase. `VALIDATION_ERROR` con UUID inválido; `BUSINESS_RULE` si el usuario no es admin (lo decide la DB). |
+
+`WeekReport` (`src/features/reportes/types/week-report.ts`): `totals`, `byDay`,
+`byModality`, `byProduct` (`source = 'option' | 'dish' | 'menu'`), `byClient` y
+`unanswered`. Los importes suman `orders.applied_price` (precio congelado): el
+servicio **nunca** recalcula precio.
+
 ---
 
 ## RPCs invocados por servicios
@@ -310,6 +323,7 @@ No usa `setSession`: el JWT ES256 no tiene usuario GoTrue ni refresh token. El c
 | `is_user_admin`            | `auth.service`          | `boolean` |
 | `calculate_my_order_price` | `menu-pricing.service`  | `numeric` |
 | `list_client_catalog`      | `menu-catalog.service`  | filas     |
+| `get_week_report`          | `reports.service`       | `jsonb`   |
 
 ---
 
@@ -331,9 +345,11 @@ No usa `setSession`: el JWT ES256 no tiene usuario GoTrue ni refresh token. El c
   `getCancellation` / `createCancellation` / `deleteCancellation`,
   `listWeekDays` / `getWeekDay`, `getClient`, `getEffectivePrice` y
   `listClientCatalog`. Es lo que usa `/menu/:token`.
-- **Vistas o RPC de reportes:** varios servicios calculan agregados en
-  cliente (`dish-usage`, `order-totals`, `history`, `historical-week-detail`
-  pagina de a 20). Migrar a vistas o RPC si el volumen crece.
+- **Vistas o RPC de reportes (hecho en parte):** el reporte semanal de montos
+  ya agrega en PostgreSQL (`get_week_report` + `reports.service`). Siguen
+  agregando en cliente `dish-usage`, `order-totals`, `history` y
+  `historical-week-detail` (este último pagina de a 20); migrarlos si el
+  volumen crece.
 - **Realtime:** no se usa. La UI de cliente ya existe (`/menu/:token`) y
   refresca por `reload()`. Si algún día hace falta push real, definir
   tablas a suscribir.

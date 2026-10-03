@@ -665,6 +665,7 @@ export type Database = {
         Args: { p_end_date: string; p_start_date: string }
         Returns: string
       }
+      get_week_report: { Args: { p_week_id: string }; Returns: Json }
       is_user_admin: { Args: { p_user_id: string }; Returns: boolean }
       list_client_catalog: {
         Args: never

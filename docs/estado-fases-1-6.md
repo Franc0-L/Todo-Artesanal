@@ -6,7 +6,7 @@ Documento de **estado real y actual** del proyecto: decisiones aprobadas,
 qué está implementado, inventario de migraciones/servicios/UI y pendientes.
 Sirve para arrancar un chat nuevo sin repetir el análisis previo.
 
-> Última actualización: **2026-10-01**.
+> Última actualización: **2026-10-02**.
 > Fuente de verdad: el código y `supabase/migrations/`. Si este documento
 > discrepa de ellos, corregir **este documento**.
 
@@ -470,25 +470,27 @@ Detalle completo en `docs/decisiones/20260926-oferta-general-opcional.md`.
 
 ## Fase 5A — Migraciones
 
-La cadena es **6 archivos por responsabilidad** (consolidada el 2026-10-02;
-inventario en "Archivos SQL generados", al final):
+La cadena son **6 archivos de esquema por responsabilidad** (consolidada el
+2026-10-02) + `20261002000007_rpc_reports` (incremental, ver inventario en
+"Archivos SQL generados", al final):
 
-| Archivo                            | Responsabilidad                                |
-| ---------------------------------- | ---------------------------------------------- |
-| `20261002000001_schema`            | schemas, tablas, constraints, índices, RLS     |
-| `20261002000002_functions_private` | funciones de `private` (helpers + trigger fns) |
-| `20261002000003_triggers`          | triggers de dominio                            |
-| `20261002000004_rls`               | policies                                       |
-| `20261002000005_rpc_admin`         | RPCs de admin/catálogo/precio interno          |
-| `20261002000006_rpc_client`        | RPCs de cliente (`security definer`)           |
+| Archivo                            | Responsabilidad                                 |
+| ---------------------------------- | ----------------------------------------------- |
+| `20261002000001_schema`            | schemas, tablas, constraints, índices, RLS      |
+| `20261002000002_functions_private` | funciones de `private` (helpers + trigger fns)  |
+| `20261002000003_triggers`          | triggers de dominio                             |
+| `20261002000004_rls`               | policies                                        |
+| `20261002000005_rpc_admin`         | RPCs de admin/catálogo/precio interno           |
+| `20261002000006_rpc_client`        | RPCs de cliente (`security definer`)            |
+| `20261002000007_rpc_reports`       | RPC de reportes (`get_week_report`, solo admin) |
 
-- Proyecto Supabase: `Todo-Artesanal` (linkeado).
+- Proyecto Supabase: `zarvihhrzfcvlegqygnu` (linkeado; local = remoto).
 - 15 tablas en `public` + `private.admin_users` en `private`.
 - Funciones públicas: `calculate_order_price`,
   `calculate_catalog_media_vianda_price`, `calculate_my_order_price`,
   `activate_week`, `close_week`, `create_menu`, `create_menu_version`,
   `create_week`, `update_week`, `is_user_admin`, `list_client_catalog`,
-  `validate_week_day_option_product_uniqueness`.
+  `get_week_report`, `validate_week_day_option_product_uniqueness`.
 - Funciones privadas: `private.is_admin`, `private.current_client_id`,
   `private.validate_order`, `private.enforce_client_day_cutoff`,
   `private.default_week_day_cutoff` y las de inmutabilidad/uniqueness.
@@ -630,7 +632,9 @@ inventario en "Archivos SQL generados", al final):
 - `menus.service.ts` listMenus: búsqueda por `.in()` + agregación de itemCount en cliente. Migrar a vista si crece.
 - `weeks.service.ts` updateWeek: borra week_day_options existentes (cascade). Documentado; evaluar flag `confirmDeleteOptions` en el futuro.
 - `history.service.ts`: agregados (totalAmount, unanswered, etc.) calculados en cliente. Migrar a vista o RPC si el volumen crece.
-- `orders.service.ts` getOrderTotals: SUM en cliente. Migrar a vista o RPC si crece.
+- `orders.service.ts` getOrderTotals: SUM en cliente (sigue usándose para el
+  listado de pedidos). El reporte semanal de montos ya agrega en PostgreSQL
+  (`get_week_report`).
 
 ---
 
@@ -655,6 +659,7 @@ inventario en "Archivos SQL generados", al final):
   - `/admin/pedidos` → `PedidosPage` (filtros por semana/día/modalidad/cliente, totales)
   - `/admin/cancelaciones` → `CancelacionesPage`
   - `/admin/historial` → `HistoryPage` (detalle por semana con `getHistoricalWeekDetail`)
+  - `/admin/reportes` → `ReportesPage` (montos consolidados por semana vía RPC `get_week_report`: totales, por día, modalidad, producto, cliente y sin responder)
 - **`AdminSectionPage`** quedó solo como fallback de rutas desconocidas:
   ya no es el placeholder de ninguna sección.
 - **`/menu/:token`** → `ClientSessionProvider` + `ClientMenuPage` +
@@ -745,9 +750,16 @@ inventario en "Archivos SQL generados", al final):
 - Ver "Fase 6 → Hecho — UI de cliente" (incluye la media vianda desde el
   catálogo y el "fuera de horario" con corte por día).
 
-## 4. Reportes
+## 4. Reportes ✅ (hecho 2026-10-02)
 
-- Vistas o funciones de reporte de montos consolidados.
+- El reporte semanal de montos consolidados agrega en PostgreSQL: RPC
+  `get_week_report(p_week_id) → jsonb` (migración `20261002000007_rpc_reports`,
+  `security definer`, guardado por `private.is_admin()`, que devuelve `totals`,
+  `by_day`, `by_modality`, `by_product`, `by_client` y `unanswered`).
+- Servicio `src/features/reportes/services/reports.service.ts` (`getWeekReport`,
+  normaliza el `jsonb` snake_case → camelCase) y página `/admin/reportes`.
+- Sigue agregando en cliente el resto (`dish-usage`, `getOrderTotals`,
+  `history`, `dashboard`): migrar si el volumen crece.
 
 ## 5. Tests
 
@@ -764,8 +776,9 @@ inventario en "Archivos SQL generados", al final):
 
 # Archivos SQL generados
 
-La cadena son **6 archivos por responsabilidad** (consolidada el 2026-10-02).
-Reproducen el esquema final: `db reset` aplica las 6 sin errores y
+La cadena son **6 archivos de esquema por responsabilidad** (consolidada el
+2026-10-02) más `20261002000007_rpc_reports` (incremental, mismo día). Los 6
+primeros reproducen el esquema final: `db reset` aplica la cadena sin errores y
 `pg_dump --schema-only` (public + private) da **0 diferencias** contra la
 baseline (3505 líneas idénticas). Los tipos generados son equivalentes a
 `src/types/database.ts`.
@@ -809,3 +822,17 @@ baseline (3505 líneas idénticas). Los tipos generados son equivalentes a
 
 - RPCs de cliente (`security definer`, identidad desde
   `private.current_client_id()`): `calculate_my_order_price` y `list_client_catalog`.
+
+## 20261002000007_rpc_reports.sql
+
+- RPC de reportes: `get_week_report(p_week_id) → jsonb`, `security definer`,
+  guardado por `private.is_admin()` (el rol `authenticated` sin fila en
+  `private.admin_users` es rechazado con `raise exception` → `P0001`).
+- Devuelve **una sola fila** (`totals`, `by_day`, `by_modality`, `by_product`,
+  `by_client`, `unanswered`). Los montos salen de
+  `SUM(quantity × applied_price)`: agrega, nunca recalcula precio (ADR-003).
+  "Sin responder" se computa contra `week_expected_clients` (ADR-005).
+- Grants: `execute` a `authenticated` y `service_role`; sin `public` ni `anon`.
+- Verificado con `migration up --local`, `db push` al proyecto linkeado y un
+  E2E por PostgREST (JWT de admin devuelve el payload; sin admin responde
+  `P0001`).

@@ -6,7 +6,8 @@ export type AdminRoutePath =
   | "/admin/semanas"
   | "/admin/pedidos"
   | "/admin/cancelaciones"
-  | "/admin/historial";
+  | "/admin/historial"
+  | "/admin/reportes";
 
 export type AppRoute =
   | { kind: "admin"; path: AdminRoutePath }
@@ -28,6 +29,7 @@ export function resolveRoute(pathname: string): AppRoute {
     "/admin/pedidos",
     "/admin/cancelaciones",
     "/admin/historial",
+    "/admin/reportes",
   ];
 
   if (adminPaths.includes(normalizedPath as AdminRoutePath)) {

@@ -17,6 +17,7 @@ const items: AdminNavItem[] = [
   { path: "/admin/pedidos", label: "Pedidos", icon: "icon_pedir" },
   { path: "/admin/cancelaciones", label: "Cancelaciones", icon: "icon_chef" },
   { path: "/admin/historial", label: "Historial", icon: "icon_campana" },
+  { path: "/admin/reportes", label: "Reportes", icon: "degustacion" },
 ];
 
 export function AdminNavigation({

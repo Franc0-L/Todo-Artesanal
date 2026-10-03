@@ -1,0 +1,14 @@
+[
+  {
+    "kty": "EC",
+    "kid": "REEMPLAZAR-KID",
+    "use": "sig",
+    "key_ops": ["sign", "verify"],
+    "alg": "ES256",
+    "ext": true,
+    "d": "REEMPLAZAR-D-PRIVADA",
+    "crv": "P-256",
+    "x": "REEMPLAZAR-X",
+    "y": "REEMPLAZAR-Y"
+  }
+]

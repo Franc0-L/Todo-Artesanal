@@ -1,0 +1,317 @@
+.reportes-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.reportes-page__header,
+.reportes-filters,
+.reportes-card,
+.reportes-table-card,
+.reportes-feedback {
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  background: var(--bg-surface);
+}
+
+.reportes-page__header {
+  padding: 1.5rem;
+}
+
+.reportes-page__eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.reportes-page h1,
+.reportes-page h2,
+.reportes-page p {
+  margin-top: 0;
+}
+
+.reportes-page h1 {
+  margin-bottom: 0.35rem;
+  text-wrap: balance;
+}
+
+.reportes-page__description {
+  margin-bottom: 0;
+  max-width: 60ch;
+  opacity: 0.75;
+}
+
+/* ---------------------------------------------------------------- */
+/* Filtros                                                          */
+/* ---------------------------------------------------------------- */
+
+.reportes-filters {
+  display: flex;
+  align-items: end;
+  gap: 1rem;
+  padding: 1rem;
+  flex-wrap: wrap;
+}
+
+.reportes-filters__field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.reportes-filters label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.reportes-filters select,
+.reportes-filters__reload {
+  min-height: 2.5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.8rem;
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.reportes-filters select {
+  min-width: 16rem;
+  max-width: 100%;
+}
+
+.reportes-filters__reload {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.reportes-filters__reload:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.reportes-filters select:focus-visible,
+.reportes-filters__reload:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.reportes-filters__reload:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------- */
+/* Feedback                                                         */
+/* ---------------------------------------------------------------- */
+
+.reportes-feedback {
+  padding: 1rem 1.25rem;
+  opacity: 0.85;
+}
+
+.reportes-feedback--error {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------- */
+/* Tarjetas de totales                                              */
+/* ---------------------------------------------------------------- */
+
+.reportes-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.reportes-card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1.1rem 1.25rem;
+}
+
+.reportes-card__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.reportes-card__value {
+  font-size: 1.55rem;
+  line-height: 1.2;
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+}
+
+.reportes-card__hint {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.reportes-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- */
+/* Tablas                                                           */
+/* ---------------------------------------------------------------- */
+
+.reportes-tables {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.reportes-table-card {
+  padding: 1.25rem 1.25rem 0.5rem;
+}
+
+.reportes-table-card h2 {
+  margin-bottom: 0.85rem;
+  font-size: 1.05rem;
+}
+
+.reportes-table-wrapper {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.reportes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.reportes-table th,
+.reportes-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.reportes-table thead th {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  border-bottom-color: var(--border-strong);
+  white-space: nowrap;
+}
+
+.reportes-table tbody th {
+  font-weight: 600;
+}
+
+.reportes-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.reportes-table tbody th,
+.reportes-table tbody td {
+  overflow-wrap: anywhere;
+}
+
+.reportes-table__date {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 400;
+  opacity: 0.65;
+}
+
+.reportes-table__empty {
+  margin: 0 0 0.75rem;
+  opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------- */
+/* Chips                                                            */
+/* ---------------------------------------------------------------- */
+
+.reportes-chip {
+  display: inline-block;
+  margin-right: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: var(--badge-neutral-bg);
+  color: var(--badge-neutral-text);
+  white-space: nowrap;
+}
+
+.reportes-chip--general {
+  background: var(--primary-subtle);
+  border-color: var(--primary-border);
+  color: var(--text-body);
+}
+
+.reportes-chip--opcional {
+  background: var(--badge-draft-bg);
+  border-color: var(--badge-draft-text);
+  color: var(--badge-draft-text);
+}
+
+.reportes-chip--media_vianda {
+  background: var(--badge-active-bg);
+  border-color: var(--success-border);
+  color: var(--badge-active-text);
+}
+
+.reportes-chip--menu {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-text);
+}
+
+.reportes-chip--dish {
+  background: var(--primary-subtle);
+  border-color: var(--primary-border);
+  color: var(--text-body);
+}
+
+/* ---------------------------------------------------------------- */
+/* Sin responder                                                    */
+/* ---------------------------------------------------------------- */
+
+.reportes-unanswered {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.reportes-unanswered li {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--bg-subtle);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .reportes-page {
+    padding: 20px 14px 36px;
+  }
+
+  .reportes-filters select {
+    min-width: 100%;
+  }
+}

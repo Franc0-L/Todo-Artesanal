@@ -28,7 +28,8 @@ arman su pedido de la semana activa.
 - ✅ **Fases 1–4** — Dominio, modelo conceptual, modelo PostgreSQL, RLS, funciones y triggers.
 - ✅ **Fase 5** — Migraciones, tipos, servicios y las dos Edge Functions (`rotate-client-token`, `authenticate-client-token`).
 - ✅ **Fase 6** — UI de admin completa (`/admin`) y UI de cliente en `/menu/:token` (oferta, pedidos, cancelaciones y media vianda del catálogo).
-- ⏳ **Pendiente** — tests de invariantes y reportes.
+- ✅ **Fase 7A** — Reportes: montos consolidados en PostgreSQL (RPC `get_week_report`) y página `/admin/reportes`.
+- ⏳ **Fase 7B** — Tests de invariantes contra la DB real (pgTAP + `supabase test db`).
 
 **Verificación end-to-end (2026-10-02):** con el proyecto Supabase
 `zarvihhrzfcvlegqygnu` se validó el ciclo completo por API: login admin →
@@ -36,6 +37,10 @@ arman su pedido de la semana activa.
 **ES256**) → lecturas de cliente (`week_days`, `list_client_catalog`,
 `calculate_my_order_price`) → escritura de pedidos y cancelaciones con sus
 invariantes (precio congelado, exclusión mutua, RLS).
+
+**Reportes (2026-10-02):** `get_week_report` verificado por PostgREST con JWT de
+admin (devuelve el payload completo) y con un usuario `authenticated` sin fila
+en `private.admin_users` (rechaza con `P0001`).
 
 Ver `docs/estado-fases-1-6.md` para el estado consolidado completo
 (incluida la **reconciliación de migraciones**) y `docs/README.md` para
@@ -76,6 +81,7 @@ Todo-Artesanal/
 │   │   └── rotate-client-token/
 │   ├── migrations/         Migraciones SQL
 │   └── config.toml
+├── .env.example          Plantilla de .env.local (commiteada)
 ├── .env.local              Variables de entorno (no commiteado)
 ├── package.json
 ├── tsconfig.json
@@ -110,17 +116,26 @@ Ver `docs/dominio.md` para el detalle.
 - Node.js 20+
 - npm
 - Supabase CLI (`npx supabase` funciona sin instalación global)
+- Docker Desktop (con backend WSL2) o Docker Engine — solo para el stack local
 
 ### Variables de entorno
 
-Crear `.env.local` en la raíz:
+El repo trae plantillas **commiteadas** (con placeholders o valores públicos)
+para cada archivo secreto; los reales son gitignored y se crean con:
 
-```env
-VITE_SUPABASE_URL=https://<project-ref>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon-key>
+```bash
+npm run env:init      # crea los que falten; nunca pisa los existentes
+npm run env:cloud     # .env.local -> proyecto en la nube (o env:local)
 ```
 
-Los valores se obtienen de Supabase Dashboard → **Project Settings → API**.
+| Plantilla                            | Genera (gitignored)          |
+| ------------------------------------ | ---------------------------- |
+| `.env.example`                       | `.env.local`                 |
+| `supabase/.env.example`              | `supabase/.env.local`        |
+| `supabase/signing_keys.example.json` | `supabase/signing_keys.json` |
+
+Detalle (qué lleva cada uno, dónde salen los valores y checklist de migración a
+otra máquina): `docs/entorno-y-secretos.md`.
 
 ### Instalación
 
@@ -174,13 +189,17 @@ ES256** que emite el cliente. Apunta a `supabase/signing_keys.json`, que
 guarda la JWK en forma de array (`[{...}]`).
 
 **Archivos locales** (gitignored, no viajan en git — hay que crearlos en cada
-clone):
+clone; `npm run env:init` los arma desde las plantillas):
 
-| Archivo                      | Contenido                                                              |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| `supabase/.env.local`        | `CLIENT_JWT_PRIVATE_KEY_JWK` (objeto JWK, no array) + `CLIENT_JWT_KID` |
-| `supabase/signing_keys.json` | `[` + esa misma JWK + `]`                                              |
-| `.env.local`                 | URL y publishable key del frontend (lo escribe `npm run env:*`)        |
+| Archivo                      | Contenido                                                              | Plantilla                            |
+| ---------------------------- | ---------------------------------------------------------------------- | ------------------------------------ |
+| `supabase/.env.local`        | `CLIENT_JWT_PRIVATE_KEY_JWK` (objeto JWK, no array) + `CLIENT_JWT_KID` | `supabase/.env.example`              |
+| `supabase/signing_keys.json` | `[` + esa misma JWK + `]`                                              | `supabase/signing_keys.example.json` |
+| `.env.local`                 | URL y publishable key del frontend (lo escribe `npm run env:*`)        | `.env.example`                       |
+
+Los dos de `supabase/` son **la misma clave en dos formas**; para mudarse de
+compu alcanza con copiar **uno** y correr `npm run env:init` (deriva el otro).
+Ver `docs/entorno-y-secretos.md`.
 
 **Credenciales locales:** el mismo admin que en la nube
 (`francoleonettu123@gmail.com`). El usuario se crea contra el Auth local y
@@ -339,8 +358,10 @@ Ver `docs/arquitectura.md` y `docs/modelo-datos.md`.
 
 ## Testing
 
-No hay tests automatizados todavía. Ver `docs/estado-fases-1-6.md` sección
-"Pendientes" para el plan de tests de invariantes.
+No hay tests automatizados todavía. La Fase 7B los agrega con **pgTAP** sobre el
+stack local (`npx supabase test db`, con Docker levantado). Ver
+`docs/estado-fases-1-6.md` sección "Pendientes" para el plan de tests de
+invariantes.
 
 Verificación manual disponible:
 
@@ -366,7 +387,7 @@ Toda la documentación está en `docs/` (índice completo en
 - **`servicios.md`** — Catálogo de la capa de servicios.
 - **`glosario.md`** — Términos del dominio.
 - **`decisiones/`** — Decisiones de dominio fechadas.
-- **`adr/`** — Architecture Decision Records (`001` escrito; `002`–`005` pendientes).
+- **`adr/`** — Architecture Decision Records (`001`–`005` escritos).
 
 ---
 
@@ -386,6 +407,7 @@ Resumen del ciclo de una semana:
 6. Admin cierra la semana             → closeWeek
      └─ datos históricos inmutables
 7. Admin consulta historial           → getClientHistory / listHistoricalWeeks
+8. Admin consulta montos consolidados → getWeekReport (RPC get_week_report)
 ```
 
 Ver `docs/flujos.md` para el detalle de cada paso.
@@ -414,6 +436,10 @@ Ver `docs/flujos.md` para el detalle de cada paso.
 - [x] UI de oferta y pedidos en `/menu/:token`
 - [x] Media vianda desde el catálogo para el cliente (RPC
       `list_client_catalog` + `ClientCatalogPicker`)
+- [x] **Reportes** (2026-10-02): montos consolidados en PostgreSQL con el RPC
+      `get_week_report` (migración `20261002000007_rpc_reports`) y página
+      `/admin/reportes` (totales, por día, modalidad, producto, cliente y sin
+      responder)
 - [ ] Tests de invariantes contra la DB real
 - [x] ADRs `001`–`005` escritos (`versionado-inmutable`,
       `media-vianda-es-modalidad`, `precio-congelado-en-pedido`,
