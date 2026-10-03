@@ -37,6 +37,10 @@ const sectionCopy: Record<
     description:
       "Consulta de hechos históricos sin reinterpretar la configuración actual.",
   },
+  "/admin/reportes": {
+    title: "Reportes",
+    description: "Montos consolidados de una semana por día, producto y cliente.",
+  },
 };
 
 export function AdminSectionPage({ path }: { path: AdminRoutePath }) {

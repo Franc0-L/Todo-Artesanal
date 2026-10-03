@@ -11,6 +11,7 @@ import { MenusPage } from "../features/menus/MenusPage";
 import { PlatosPage } from "../features/platos/PlatosPage";
 import { SemanasPage } from "../features/semanas/SemanasPage";
 import { PedidosPage } from "../features/pedidos/PedidosPage";
+import { ReportesPage } from "../features/reportes/ReportesPage";
 import { CancelacionesPage } from "../features/cancelaciones/CancelacionesPage";
 import { ClientMenuPage } from "../features/menu/ClientMenuPage";
 import { ClientSessionProvider } from "../features/menu/ClientSessionProvider";
@@ -72,6 +73,9 @@ function AdminRoute({ path }: { path: AdminPath }) {
       break;
     case "/admin/historial":
       content = <HistoryPage />;
+      break;
+    case "/admin/reportes":
+      content = <ReportesPage />;
       break;
     default:
       content = <AdminSectionPage path={path} />;
